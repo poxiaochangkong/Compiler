@@ -1,8 +1,21 @@
-cmake_minimum_required(VERSION 3.10)  # CMake 最低版本要求
-project(Compiler)  # 设置项目名称
+cmake_minimum_required(VERSION 3.10)
+project(Compiler)
 
 # 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 11)
 
-# 添加源代码文件
-add_executable(Compiler src/main.cpp)
+# 查找 Flex 和 Bison
+find_package(FLEX REQUIRED)
+find_package(BISON REQUIRED)
+
+# 处理 Flex 文件（lexer.l）
+FLEX_TARGET(MyLexer src/lexer.l ${CMAKE_BINARY_DIR}/lexer.cpp)
+
+# 处理 Bison 文件（parser.y）
+BISON_TARGET(MyParser src/parser.y ${CMAKE_BINARY_DIR}/parser.cpp)
+
+# 将生成的 lexer.cpp 和 parser.cpp 添加到构建
+add_executable(Compiler ${CMAKE_BINARY_DIR}/lexer.cpp ${CMAKE_BINARY_DIR}/parser.cpp src/main.cpp)
+
+# 如果有外部依赖，可以在这里链接
+# target_link_libraries(MyCompiler SomeLibrary)
