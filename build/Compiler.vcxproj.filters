@@ -1,16 +1,47 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="D:\Compiler\Compiler\build\parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Compiler\Compiler\build\lexer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Compiler\Compiler\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D:\Compiler\Compiler\build\parser.tab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Compiler\Compiler\build\CMakeFiles\8f9f164ddb788ae5efd151ec98283bf3\parser.cpp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\Compiler\Compiler\build\CMakeFiles\8f9f164ddb788ae5efd151ec98283bf3\lexer.cpp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
     <CustomBuild Include="D:\Compiler\Compiler\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{49A44336-15C1-3C01-9BE0-908639955C6C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{47097EAD-05FC-3524-82FC-F938B9F0C98E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{2318F15E-9E0F-3E0E-8D75-DB23DB7D1767}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\lexer.l">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\src\parser.y">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

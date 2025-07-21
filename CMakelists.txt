@@ -1,21 +1,39 @@
 cmake_minimum_required(VERSION 3.10)
 project(Compiler)
 
-# 设置 C++ 标准
+# 使用 C++11
 set(CMAKE_CXX_STANDARD 11)
 
-# 查找 Flex 和 Bison
+# 找到 Flex 和 Bison
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-# 处理 Flex 文件（lexer.l）
-FLEX_TARGET(MyLexer src/lexer.l ${CMAKE_BINARY_DIR}/lexer.cpp)
+# 1) Bison：生成 parser.cpp 和 parser.tab.h
+BISON_TARGET(
+  MyParser
+  src/parser.y
+  ${CMAKE_BINARY_DIR}/parser.cpp
+  DEFINES_FILE ${CMAKE_BINARY_DIR}/parser.tab.h       # ← 关键：必须加上这个关键字
+)
 
-# 处理 Bison 文件（parser.y）
-BISON_TARGET(MyParser src/parser.y ${CMAKE_BINARY_DIR}/parser.cpp)
+# 2) Flex：生成 lexer.cpp
+FLEX_TARGET(
+  MyLexer
+  src/lexer.l
+  ${CMAKE_BINARY_DIR}/lexer.cpp
+)
 
-# 将生成的 lexer.cpp 和 parser.cpp 添加到构建
-add_executable(Compiler ${CMAKE_BINARY_DIR}/lexer.cpp ${CMAKE_BINARY_DIR}/parser.cpp src/main.cpp)
+# 3) 依赖：保证 parser.tab.h 已经生成后再生成 lexer
+ADD_FLEX_BISON_DEPENDENCY(MyLexer MyParser)
 
-# 如果有外部依赖，可以在这里链接
-# target_link_libraries(MyCompiler SomeLibrary)
+# 4) 最终可执行：把所有生成文件和 main.cpp 都加进来
+add_executable(Compiler
+  ${BISON_MyParser_OUTPUTS}    # 包含 parser.cpp 和 parser.tab.h
+  ${FLEX_MyLexer_OUTPUTS}      # 包含 lexer.cpp
+  src/main.cpp
+)
+
+# 5) 让编译器能找到 parser.tab.h
+target_include_directories(Compiler PRIVATE
+  ${CMAKE_BINARY_DIR}
+)

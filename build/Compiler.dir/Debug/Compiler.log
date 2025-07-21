@@ -1,0 +1,10 @@
+﻿  main.cpp
+D:\Compiler\Compiler\src\main.cpp(15,16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+parser.obj : error LNK2019: 无法解析的外部符号 yylex，函数 "int __cdecl yyparse(void)" (?yyparse@@YAHXZ) 中引用了该符号
+main.obj : error LNK2001: 无法解析的外部符号 yylex
+    已定义且可能匹配的符号上的提示:
+      "int __cdecl yylex(void)" (?yylex@@YAHXZ)
+main.obj : error LNK2001: 无法解析的外部符号 yyin
+    已定义且可能匹配的符号上的提示:
+      "struct _iobuf * yyin" (?yyin@@3PEAU_iobuf@@EA)
+D:\Compiler\Compiler\build\Debug\Compiler.exe : fatal error LNK1120: 2 个无法解析的外部命令

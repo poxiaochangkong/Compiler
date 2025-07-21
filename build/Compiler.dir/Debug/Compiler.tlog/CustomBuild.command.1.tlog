@@ -1,0 +1,42 @@
+^D:\COMPILER\COMPILER\BUILD\CMAKEFILES\8F9F164DDB788AE5EFD151EC98283BF3\PARSER.CPP.RULE
+setlocal
+cd D:\Compiler\Compiler
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"D:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/Compiler/Compiler/build
+if %errorlevel% neq 0 goto :cmEnd
+"D:\Program Files\MSYS2\usr\bin\bison.exe" --defines=D:/Compiler/Compiler/build/parser.tab.h -o D:/Compiler/Compiler/build/parser.cpp src/parser.y
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\COMPILER\COMPILER\BUILD\CMAKEFILES\8F9F164DDB788AE5EFD151EC98283BF3\LEXER.CPP.RULE
+setlocal
+cd D:\Compiler\Compiler
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"D:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/Compiler/Compiler/build
+if %errorlevel% neq 0 goto :cmEnd
+"D:\Program Files\MSYS2\usr\bin\flex.exe" -oD:/Compiler/Compiler/build/lexer.cpp src/lexer.l
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\COMPILER\COMPILER\CMAKELISTS.TXT
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/Compiler/Compiler -BD:/Compiler/Compiler/build --check-stamp-file D:/Compiler/Compiler/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
