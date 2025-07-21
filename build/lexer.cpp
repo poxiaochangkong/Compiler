@@ -492,7 +492,6 @@ char *yytext;
     #define strdup _strdup
   #endif
 
-
   /* 引入 Bison 生成的头，内含 union YYSTYPE 和 extern YYSTYPE yylval */
   #include "parser.tab.h"
 
@@ -501,10 +500,10 @@ char *yytext;
   #include <cstring>   /* strdup */
   /* Flex 自动声明：yyin 指向当前输入流，yylineno 记录行号 */
   
-#line 504 "D:/Compiler/Compiler/build/lexer.cpp"
+#line 503 "D:/Compiler/Compiler/build/lexer.cpp"
 /* 禁用默认 yywrap()，并自动维护 yylineno */
 /* —— 规则区：正则模式 + 动作 —— */
-#line 507 "D:/Compiler/Compiler/build/lexer.cpp"
+#line 506 "D:/Compiler/Compiler/build/lexer.cpp"
 
 #define INITIAL 0
 
@@ -721,12 +720,12 @@ YY_DECL
 		}
 
 	{
-#line 28 "src/lexer.l"
+#line 27 "src/lexer.l"
 
 
 
 
-#line 729 "D:/Compiler/Compiler/build/lexer.cpp"
+#line 728 "D:/Compiler/Compiler/build/lexer.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -795,29 +794,29 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 32 "src/lexer.l"
+#line 31 "src/lexer.l"
 ;   /* 忽略空格、制表符、回车 */
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 33 "src/lexer.l"
+#line 32 "src/lexer.l"
 ;   /* 忽略换行，yylineno 自动+1 */
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 35 "src/lexer.l"
+#line 34 "src/lexer.l"
 ;   /* 忽略 C++ 单行注释 */
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 36 "src/lexer.l"
+#line 35 "src/lexer.l"
 ;  /* 忽略 C 风格多行注释 */
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 38 "src/lexer.l"
+#line 37 "src/lexer.l"
 {
                          /* 匹配整数，存入 yylval 并返回 NUMBER token */
                          yylval.intval = std::atoi(yytext);
@@ -826,7 +825,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 44 "src/lexer.l"
+#line 43 "src/lexer.l"
 {
                          /* 匹配标识符，复制文本后返回 IDENTIFIER token */
                          yylval.strval = strdup(yytext);
@@ -835,47 +834,47 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 50 "src/lexer.l"
+#line 49 "src/lexer.l"
 { return PLUS; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 51 "src/lexer.l"
+#line 50 "src/lexer.l"
 { return MINUS; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 52 "src/lexer.l"
+#line 51 "src/lexer.l"
 { return MULTIPLY; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 53 "src/lexer.l"
+#line 52 "src/lexer.l"
 { return DIVIDE; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 55 "src/lexer.l"
+#line 54 "src/lexer.l"
 { return LPAREN; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 56 "src/lexer.l"
+#line 55 "src/lexer.l"
 { return RPAREN; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 57 "src/lexer.l"
+#line 56 "src/lexer.l"
 { return SEMI; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 58 "src/lexer.l"
+#line 57 "src/lexer.l"
 { return ASSIGN; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 60 "src/lexer.l"
+#line 59 "src/lexer.l"
 {
                          /* 其他任何单字符，报错但不退出 */
                          fprintf(stderr,
@@ -885,10 +884,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 67 "src/lexer.l"
+#line 66 "src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 891 "D:/Compiler/Compiler/build/lexer.cpp"
+#line 890 "D:/Compiler/Compiler/build/lexer.cpp"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -906,7 +905,8 @@ case YY_STATE_EOF(INITIAL):
 			/* We're scanning a new file or input source.  It's
 			 * possible that this happened because the user
 			 * just pointed yyin at a new source and called
-			 * yylex().  If so, then we have to assure
+			 * 
+			 ).  If so, then we have to assure
 			 * consistency between YY_CURRENT_BUFFER and our
 			 * globals.  Here is the right place to do so, because
 			 * this is the first action (other than possibly a
@@ -1905,7 +1905,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 67 "src/lexer.l"
+#line 66 "src/lexer.l"
 
 
 /* —— 用户子程序区 —— */

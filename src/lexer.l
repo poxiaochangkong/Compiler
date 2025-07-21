@@ -10,12 +10,9 @@
     #define strdup _strdup
   #endif
 
-  #ifdef __cplusplus
-  extern "C" {
-  #endif
   /* 引入 Bison 生成的头，内含 union YYSTYPE 和 extern YYSTYPE yylval */
   #include "parser.tab.h"
-
+  #define YY_DECL int yylex(void)
   #include <cstdlib>   /* std::atoi */
   #include <cstdio>    /* fopen, perror, fprintf */
   #include <cstring>   /* strdup */

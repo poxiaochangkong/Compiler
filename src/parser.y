@@ -2,17 +2,8 @@
   // C/C++ 头文件与全局声明
   #include <cstdio>
   // yylex 在 lexer.l 里生成
-  extern "C" int yylex();   
-  #ifdef __cplusplus
-  extern "C" {
-  #endif
-
-  int yylex(void);
-  extern FILE *yyin;
-
-  #ifdef __cplusplus
-  }
-  #endif
+  int yylex(void);        /* 声明即可，别加 extern "C" */
+  extern FILE* yyin;
 
   void yyerror(const char *s) {
     fprintf(stderr, "Parse error: %s\n", s);

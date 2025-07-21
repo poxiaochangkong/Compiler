@@ -72,23 +72,14 @@
   // C/C++ 头文件与全局声明
   #include <cstdio>
   // yylex 在 lexer.l 里生成
-  extern "C" int yylex();   
-  #ifdef __cplusplus
-  extern "C" {
-  #endif
-
-  int yylex(void);
-  extern FILE *yyin;
-
-  #ifdef __cplusplus
-  }
-  #endif
+  int yylex(void);        /* 声明即可，别加 extern "C" */
+  extern FILE* yyin;
 
   void yyerror(const char *s) {
     fprintf(stderr, "Parse error: %s\n", s);
   }
 
-#line 92 "D:/Compiler/Compiler/build/parser.cpp"
+#line 83 "D:/Compiler/Compiler/build/parser.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -519,7 +510,7 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    44,    44,    46,    51,    56,    57,    58,    59
+       0,    35,    35,    37,    42,    47,    48,    49,    50
 };
 #endif
 
@@ -1084,13 +1075,13 @@ yyreduce:
   switch (yyn)
     {
   case 5: /* expression: NUMBER  */
-#line 56 "src/parser.y"
+#line 47 "src/parser.y"
                       { /* $1 存在于 yylval */ }
-#line 1090 "D:/Compiler/Compiler/build/parser.cpp"
+#line 1081 "D:/Compiler/Compiler/build/parser.cpp"
     break;
 
 
-#line 1094 "D:/Compiler/Compiler/build/parser.cpp"
+#line 1085 "D:/Compiler/Compiler/build/parser.cpp"
 
       default: break;
     }
@@ -1283,7 +1274,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 61 "src/parser.y"
+#line 52 "src/parser.y"
 
 
 /* （可选）提供一个入口 main 给单独测试用 */
