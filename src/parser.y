@@ -20,8 +20,16 @@
 /* 告诉 Bison：不同的 token 对应 union 中的哪个成员 */
 %token <intval>    NUMBER
 %token <strval>    IDENTIFIER
-%token              PLUS MINUS MULTIPLY DIVIDE LPAREN RPAREN SEMI ASSIGN
+%token              PLUS MINUS MULTIPLY DIVIDE 
+%token              EXCLAPOINT EQ LE GE LT GT OR AND
+%token              ASSIGN
+%token              LPAREN RPAREN SEMI LBRACE RBRACE COMMA
+%token              INT VOID
+%token              IF ELSE WHILE BREAK CONTINUE
+%token              RETURN
 
+%nonassoc LOWER_THAN_ELSE   
+%nonassoc ELSE              
 
 
 /*%%
@@ -39,9 +47,15 @@ program:
 
 /* 一个最简单的 statement，后面你再扩展 */
 statement:
-     expression SEMI
+     |Block
+     |SEMI
+     |expression SEMI
+     |IDENTIFIER ASSIGN expression SEMI
+     |INT IDENTIFIER ASSIGN expression SEMI
+     |IF LPAREN expression RPAREN statement  %prec LOWER_THAN_ELSE
+     |IF LPAREN expression RPAREN statement ELSE statement
    ;
-
+   
 /* 简单表达式示例 */
 expression:
      NUMBER           { /* $1 存在于 yylval */ }

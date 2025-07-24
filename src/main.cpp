@@ -11,6 +11,6 @@ int main(int argc, char** argv) {
         }
     }
     // 这一步会不断匹配 lexer.l 中的规则，产生 token/动作
-    yylex();
+    int i=yylex();      
     return 0;
 }

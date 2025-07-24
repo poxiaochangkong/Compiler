@@ -25,13 +25,21 @@
 %option yylineno
 /* —— 规则区：正则模式 + 动作 —— */
 %%
+"int"                   { return INT; }
+"void"                  { return VOID; }
+
+"if"                    { return IF; }
+"else"                  { return ELSE; }
+"while"                 { return WHILE; }
+"break"                 { return BREAK; }
+"continue"              { return CONTINUE; }
+"return"                { return RETURN; }
 
 
+[ \t]+               ;   /* 忽略空格、制表符*/
+\r?\n                  ;
 
-[ \t\r]+               ;   /* 忽略空格、制表符、回车 */
-\n                     ;   /* 忽略换行，yylineno 自动+1 */
-
-"//".*                 ;   /* 忽略 C++ 单行注释 */
+"//"[^\r\n]*                 ;   /* 忽略 C++ 单行注释 */
 \/\*([^*]|\*+[^/*])*\*+\/    ;  /* 忽略 C 风格多行注释 */
 
 [0-9]+                 {
@@ -50,11 +58,24 @@
 "-"                     { return MINUS; }
 "*"                     { return MULTIPLY; }
 "/"                     { return DIVIDE; }
+"%"                     { return PRECENT; }
+
+"!"                     { return EXCLAPOINT; }
+"=="                    { return EQ; // 先声明长运算符,flex自动匹配最长的}    
+"<="                    { return LE; }
+">="                    { return GE; }
+"<"                     { return LT; }
+">"                     { return GT; }
+"||"                    { return OR; }
+"&&"                    { return AND; }
 
 "("                     { return LPAREN; }
 ")"                     { return RPAREN; }
 ";"                     { return SEMI; }
 "="                     { return ASSIGN; }
+"{"                     { return LBRACE; }
+"}"                     { return RBRACE; }
+","                     { return COMMA; }
 
 .                       {
                          /* 其他任何单字符，报错但不退出 */
