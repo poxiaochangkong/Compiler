@@ -23,7 +23,7 @@
 /* 禁用默认 yywrap()，并自动维护 yylineno */
 %option noyywrap
 %option yylineno
-/* —— 规则区：正则模式 + 动作 —— */
+/* —— 规则区：正则模式 + 动作 —— ,二进制模式可能出现/r报错,先声明长运算符,flex自动匹配最长的*/
 %%
 "int"                   { return INT; }
 "void"                  { return VOID; }
@@ -58,10 +58,11 @@
 "-"                     { return MINUS; }
 "*"                     { return MULTIPLY; }
 "/"                     { return DIVIDE; }
-"%"                     { return PRECENT; }
+"%"                     { return PERCENT; }
 
 "!"                     { return EXCLAPOINT; }
-"=="                    { return EQ; // 先声明长运算符,flex自动匹配最长的}    
+"!="                    { return NEQ; }
+"=="                    { return EQ; }    
 "<="                    { return LE; }
 ">="                    { return GE; }
 "<"                     { return LT; }
@@ -78,10 +79,11 @@
 ","                     { return COMMA; }
 
 .                       {
-                         /* 其他任何单字符，报错但不退出 */
+                         /* 其他任何单字符，报错，程序退出 */
                          fprintf(stderr,
                                  "Lexer error at line %d: unexpected '%s'\n",
                                  yylineno, yytext);
+                         return ERROR;
                       }
 
 %%

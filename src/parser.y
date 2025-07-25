@@ -20,13 +20,14 @@
 /* 告诉 Bison：不同的 token 对应 union 中的哪个成员 */
 %token <intval>    NUMBER
 %token <strval>    IDENTIFIER
-%token              PLUS MINUS MULTIPLY DIVIDE 
-%token              EXCLAPOINT EQ LE GE LT GT OR AND
+%token              PLUS MINUS MULTIPLY DIVIDE PERCENT
+%token              EXCLAPOINT EQ NEQ LE GE LT GT OR AND
 %token              ASSIGN
 %token              LPAREN RPAREN SEMI LBRACE RBRACE COMMA
 %token              INT VOID
 %token              IF ELSE WHILE BREAK CONTINUE
 %token              RETURN
+%token              ERROR
 
 %nonassoc LOWER_THAN_ELSE   
 %nonassoc ELSE              
@@ -41,28 +42,122 @@
 /* 规则区：一个最简单的 start symbol */
 %%
 program:
-     /* 空程序 */
-   | program statement
+      FuncDef_list
    ;
 
-/* 一个最简单的 statement，后面你再扩展 */
+FuncDef_list:
+      FuncDef
+    | FuncDef_list FuncDef   
+    ;
+
+/* 一个最简单的 statement，再扩展 */
 statement:
-     |Block
-     |SEMI
-     |expression SEMI
-     |IDENTIFIER ASSIGN expression SEMI
-     |INT IDENTIFIER ASSIGN expression SEMI
-     |IF LPAREN expression RPAREN statement  %prec LOWER_THAN_ELSE
-     |IF LPAREN expression RPAREN statement ELSE statement
+       Block
+     | SEMI
+     | expression SEMI
+     | IDENTIFIER ASSIGN expression SEMI
+     | INT IDENTIFIER ASSIGN expression SEMI
+     | IF LPAREN expression RPAREN statement  %prec LOWER_THAN_ELSE
+     | IF LPAREN expression RPAREN statement ELSE statement
+     | WHILE LPAREN expression RPAREN statement 
+     | BREAK SEMI
+     | CONTINUE SEMI
+     | RETURN SEMI
+     | RETURN expression SEMI
    ;
+statement_list:
+    /*ε*/
+    | statement_list statement
+    ;
+
+Block:
+      LBRACE statement_list RBRACE
+    ;
    
-/* 简单表达式示例 */
+
+FuncDef:
+      return_type IDENTIFIER LPAREN param_list_opt RPAREN Block
+    ;
+
+return_type:
+      INT
+    | VOID
+    ;
+
+param_list_opt:
+      /*ε*/
+    | param_list
+    ;
+
+param_list:
+      param_list COMMA param
+    | param
+    ;
+
+param:
+      INT IDENTIFIER
+    ;
+    
 expression:
-     NUMBER           { /* $1 存在于 yylval */ }
-   | expression PLUS expression
-   | expression MINUS expression
-   | LPAREN expression RPAREN
-   ;
+      LOrexpr
+    ;
+
+LOrexpr:
+      LAndexpr
+    | LOrexpr OR LAndexpr
+    ;
+
+LAndexpr:
+      Relexpr
+    | LAndexpr AND Relexpr
+    ;
+
+Relexpr:
+      Addexpr
+    | Relexpr LT Addexpr
+    | Relexpr GT Addexpr
+    | Relexpr LE Addexpr
+    | Relexpr GE Addexpr
+    | Relexpr EQ Addexpr
+    | Relexpr NEQ Addexpr
+    ;
+
+Addexpr:
+      Mulexpr
+    | Addexpr PLUS Mulexpr
+    | Addexpr MINUS Mulexpr
+    ; 
+
+Mulexpr:
+      Unaryexpr
+    | Mulexpr MULTIPLY Unaryexpr
+    | Mulexpr DIVIDE Unaryexpr
+    | Mulexpr PERCENT Unaryexpr
+    ;
+
+Unaryexpr:
+      Primaryexpr
+    | PLUS Unaryexpr
+    | MINUS Unaryexpr
+    | EXCLAPOINT Unaryexpr
+    ;
+
+Primaryexpr:
+      IDENTIFIER
+    | NUMBER
+    | LPAREN expression RPAREN
+    | IDENTIFIER LPAREN expr_list_opt RPAREN
+    ;
+
+expr_list_opt:
+      /*ε*/
+    | expr_list
+    ;
+
+expr_list:
+      expr_list COMMA expression
+    | expression
+    ;
 %%
 
 /* （可选）提供一个入口 main 给单独测试用 */
