@@ -31,9 +31,11 @@ add_executable(Compiler
   ${BISON_MyParser_OUTPUTS}    # 包含 parser.cpp 和 parser.tab.h
   ${FLEX_MyLexer_OUTPUTS}      # 包含 lexer.cpp
   src/main.cpp
+  src/ast.cpp   
 )
 
 # 5) 让编译器能找到 parser.tab.h
 target_include_directories(Compiler PRIVATE
   ${CMAKE_BINARY_DIR}
+  ${CMAKE_SOURCE_DIR}/src
 )
