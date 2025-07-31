@@ -1,0 +1,52 @@
+﻿  parser.cpp
+  lexer.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(49,1): warning C4005: “INT8_MIN”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(59,1):
+  参见“INT8_MIN”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(50,1): warning C4005: “INT16_MIN”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(62,1):
+  参见“INT16_MIN”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(51,1): warning C4005: “INT32_MIN”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(65,1):
+  参见“INT32_MIN”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(53,1): warning C4005: “INT8_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(68,1):
+  参见“INT8_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(54,1): warning C4005: “INT16_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(71,1):
+  参见“INT16_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(55,1): warning C4005: “INT32_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(74,1):
+  参见“INT32_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(57,1): warning C4005: “UINT8_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(77,1):
+  参见“UINT8_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(58,1): warning C4005: “UINT16_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(80,1):
+  参见“UINT16_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(59,1): warning C4005: “UINT32_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(83,1):
+  参见“UINT32_MAX”的前一个定义
+  
+  main.cpp
+D:\Compiler\Compiler\src\main.cpp(12,16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  ast.cpp
+  正在生成代码...
+  Compiler.vcxproj -> D:\Compiler\Compiler\build\Debug\Compiler.exe
