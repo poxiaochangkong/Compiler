@@ -4,12 +4,14 @@
 #include <vector>
 #include <memory>
 
+struct Program;
+extern Program* g_root;
 enum class TypeKind { TY_INT, TY_VOID };
 
 struct Node { virtual ~Node() = default; };
 
 // --- 表达式 ---
-struct Expr : Node { TypeKind ty = TypeKind::TY_INT; };
+struct Expr : Node { TypeKind type_val = TypeKind::TY_INT; };
 struct IntLiteral : Expr { int value; explicit IntLiteral(int v) : value(v) {} };
 struct VarExpr : Expr { std::string name; explicit VarExpr(std::string n) : name(std::move(n)) {} };
 
@@ -42,7 +44,7 @@ struct WhileStmt : Stmt {
 
 
 // --- 函数/程序 ---
-struct Param { TypeKind ty; std::string name; };
+struct Param : Node { TypeKind type_val; std::string name; };
 struct FuncDef : Node {
 	TypeKind ret; std::string name; std::vector<Param*> params; Block* body;
 };

@@ -1,13 +1,16 @@
+%code requires {
+
+  #include "ast.hpp" // ast.hpp 定义了 AST 节点并包含了 <vector>
+}
 %{ 
   // C/C++ 头文件与全局声明
   #include <cstdio>
-  #include "ast.hpp"
   // yylex 在 lexer.l 里生成
   int yylex(void);        /* 声明即可，别加 extern "C" */
   extern FILE* yyin;
 
-  Program* g_root = nullptr;
-
+  //Program* g_root = nullptr;
+  extern int yylineno;
   void yyerror(const char *s) {
     std::fprintf(stderr, "Parse error at line %d: %s\n", yylineno, s);
   }
@@ -19,7 +22,7 @@
    int                    intval;
   char*                  strval;
 
-  TypeKind               ty;
+  TypeKind               type_val;
 
   Expr*                  expr;
   Stmt*                  stmt;
@@ -58,7 +61,7 @@
 %type <stmts>   statement_list
 %type <block>   Block
 
-%type <ty>      return_type
+%type <type_val>      return_type
 %type <params>  param_list param_list_opt
 %type <param>   param
 
@@ -188,7 +191,7 @@ param:
       INT IDENTIFIER
       {
       Param* p = arena_make<Param>();
-      p->ty = TypeKind::TY_INT;
+      p->type_val = TypeKind::TY_INT;
       p->name = std::string($2); free($2);
       $$ = p;
     }

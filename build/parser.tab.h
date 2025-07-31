@@ -44,6 +44,13 @@
 #if YYDEBUG
 extern int yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 1 "src/parser.y"
+
+
+  #include "ast.hpp" // ast.hpp 定义了 AST 节点并包含了 <vector>
+
+#line 54 "D:/Compiler/Compiler/build/parser.tab.h"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -60,10 +67,33 @@ extern int yydebug;
     MINUS = 261,                   /* MINUS  */
     MULTIPLY = 262,                /* MULTIPLY  */
     DIVIDE = 263,                  /* DIVIDE  */
-    LPAREN = 264,                  /* LPAREN  */
-    RPAREN = 265,                  /* RPAREN  */
-    SEMI = 266,                    /* SEMI  */
-    ASSIGN = 267                   /* ASSIGN  */
+    PERCENT = 264,                 /* PERCENT  */
+    EXCLAPOINT = 265,              /* EXCLAPOINT  */
+    EQ = 266,                      /* EQ  */
+    NEQ = 267,                     /* NEQ  */
+    LE = 268,                      /* LE  */
+    GE = 269,                      /* GE  */
+    LT = 270,                      /* LT  */
+    GT = 271,                      /* GT  */
+    OR = 272,                      /* OR  */
+    AND = 273,                     /* AND  */
+    ASSIGN = 274,                  /* ASSIGN  */
+    LPAREN = 275,                  /* LPAREN  */
+    RPAREN = 276,                  /* RPAREN  */
+    SEMI = 277,                    /* SEMI  */
+    LBRACE = 278,                  /* LBRACE  */
+    RBRACE = 279,                  /* RBRACE  */
+    COMMA = 280,                   /* COMMA  */
+    INT = 281,                     /* INT  */
+    VOID = 282,                    /* VOID  */
+    IF = 283,                      /* IF  */
+    ELSE = 284,                    /* ELSE  */
+    WHILE = 285,                   /* WHILE  */
+    BREAK = 286,                   /* BREAK  */
+    CONTINUE = 287,                /* CONTINUE  */
+    RETURN = 288,                  /* RETURN  */
+    ERROR = 289,                   /* ERROR  */
+    LOWER_THAN_ELSE = 290          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -72,12 +102,26 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 15 "src/parser.y"
+#line 21 "src/parser.y"
 
-  int    intval;
-  char * strval;
+   int                    intval;
+  char*                  strval;
 
-#line 81 "D:/Compiler/Compiler/build/parser.tab.h"
+  TypeKind               type_val;
+
+  Expr*                  expr;
+  Stmt*                  stmt;
+  Block*                 block;
+  FuncDef*               func;
+  Param*                 param;
+  Program*               program;
+
+  std::vector<Stmt*>*        stmts;
+  std::vector<Expr*>*        args;
+  std::vector<Param*>*       params;
+  std::vector<FuncDef*>*     funcs;
+
+#line 125 "D:/Compiler/Compiler/build/parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
