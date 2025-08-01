@@ -1,5 +1,4 @@
-﻿  parser.cpp
-  lexer.cpp
+﻿  lexer.cpp
 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(49,1): warning C4005: “INT8_MIN”: 宏重定义
   (编译源文件“lexer.cpp”)
   D:\Compiler\Compiler\build\lexer.cpp(59,1):
@@ -45,8 +44,7 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.3313
   D:\Compiler\Compiler\build\lexer.cpp(83,1):
   参见“UINT32_MAX”的前一个定义
   
-  main.cpp
-D:\Compiler\Compiler\src\main.cpp(12,16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-  ast.cpp
+  parser.cpp
   正在生成代码...
+  LINK : 没有找到 D:\Compiler\Compiler\build\Debug\Compiler.exe 或上一个增量链接没有生成它；正在执行完全链接
   Compiler.vcxproj -> D:\Compiler\Compiler\build\Debug\Compiler.exe
