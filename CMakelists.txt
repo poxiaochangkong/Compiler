@@ -33,6 +33,11 @@ add_executable(Compiler
   ${FLEX_MyLexer_OUTPUTS}      # °üº¬ lexer.cpp
   src/main.cpp
   src/ast.cpp   
+  src/SemanticAnalyzer.cpp
+  src/ast.hpp
+  src/lexer.l
+  src/parser.y
+  src/SemanticAnalyzer.hpp
 )
 
 # 5) ÈÃ±àÒëÆ÷ÄÜÕÒµ½ parser.tab.h
