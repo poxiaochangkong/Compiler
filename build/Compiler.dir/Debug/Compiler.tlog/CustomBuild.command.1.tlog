@@ -6,7 +6,7 @@ D:
 if %errorlevel% neq 0 goto :cmEnd
 "D:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/Compiler/Compiler/build
 if %errorlevel% neq 0 goto :cmEnd
-"D:\Program Files\MSYS2\usr\bin\bison.exe" --defines=D:/Compiler/Compiler/build/parser.tab.h -o D:/Compiler/Compiler/build/parser.cpp src/parser.y
+"D:\Program Files\MSYS2\usr\bin\bison.exe" -t --defines=D:/Compiler/Compiler/build/parser.tab.h -o D:/Compiler/Compiler/build/parser.cpp src/parser.y
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

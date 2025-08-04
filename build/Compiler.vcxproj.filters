@@ -18,9 +18,6 @@
     <ClInclude Include="D:\Compiler\Compiler\build\parser.tab.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ast.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\Compiler\Compiler\build\CMakeFiles\8f9f164ddb788ae5efd151ec98283bf3\parser.cpp.rule">

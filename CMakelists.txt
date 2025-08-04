@@ -14,6 +14,7 @@ BISON_TARGET(
   src/parser.y
   ${CMAKE_BINARY_DIR}/parser.cpp
   DEFINES_FILE ${CMAKE_BINARY_DIR}/parser.tab.h       # ← 关键：必须加上这个关键字
+  COMPILE_FLAGS "-t"  # 打印调试信息
 )
 
 # 2) Flex：生成 lexer.cpp
@@ -32,6 +33,11 @@ add_executable(Compiler
   ${FLEX_MyLexer_OUTPUTS}      # 包含 lexer.cpp
   src/main.cpp
   src/ast.cpp   
+  src/SemanticAnalyzer.cpp
+  src/ast.hpp
+  src/lexer.l
+  src/parser.y
+  src/SemanticAnalyzer.hpp
 )
 
 # 5) 让编译器能找到 parser.tab.h
