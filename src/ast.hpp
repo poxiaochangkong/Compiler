@@ -14,9 +14,7 @@ struct Node { virtual ~Node() = default;
 };
 
 // --- ±Ì¥Ô Ω ---
-struct Expr : Node { TypeKind type_val = TypeKind::TY_INT; 
-	void accept(Visitor* v) override;
-};
+struct Expr : Node { TypeKind type_val = TypeKind::TY_INT;};
 struct IntLiteral : Expr { int value; explicit IntLiteral(int v) : value(v) {} 
 	void accept(Visitor* v) override;
 };
@@ -40,7 +38,6 @@ struct CallExpr : Expr { std::string callee; std::vector<Expr*> args;
 
 // --- ”Ôæ‰ ---
 struct Stmt : Node {
-	void accept(Visitor* v) override;
 };
 struct ExprStmt : Stmt { Expr* e; explicit ExprStmt(Expr* x) : e(x) {} 
 	void accept(Visitor* v) override;

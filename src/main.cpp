@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <iostream>
 #include "ast.hpp"          // 使用 Program* 类型
-
+#include "SemanticAnalyzer.hpp"//语义分析
 // Bison 调试开关 (yydebug)
 // 在 parser.y 编译时加入 -t 标志
 extern int yydebug;
@@ -33,15 +33,16 @@ int main(int argc, char** argv) {
 
     // 检查分析结果
     if (parse_result == 0 && g_root != nullptr) {
-        printf("Parsing successful!\n");
-        printf("AST root has been created.\n");
-        // 在这里，你可以开始下一阶段，例如遍历 AST 进行语义分析或代码生成
-        // 例如：
-        // SemanticAnalyzer analyzer;
-        // analyzer.analyze(g_root);
+        std::cout << "\nParsing successful! AST created." << std::endl;
+
+        std::cout << "--- Starting Semantic Analysis ---" << std::endl;
+        SemanticAnalyzer analyzer;
+        analyzer.analyze(g_root);
+        std::cout << "--- Semantic Analysis Finished ---" << std::endl;
+
     }
     else {
-        printf("Parsing failed.\n");
+        std::cout << "\nParsing failed." << std::endl;
     }
 
     if (yyin) {
@@ -49,5 +50,4 @@ int main(int argc, char** argv) {
     }
 
     return parse_result;
-    return 0;
 }

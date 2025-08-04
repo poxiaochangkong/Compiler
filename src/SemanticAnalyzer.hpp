@@ -15,8 +15,8 @@ struct SymbolInfo {
 // 语义分析器类，继承自 Visitor，负责遍历 AST 并执行检查
 class SemanticAnalyzer : public Visitor {
 private:
-    // 作用域栈，每个元素是一个作用域（一个从名字到信息的映射）
-    std::stack<std::unordered_map<std::string, SymbolInfo>> scopes;
+    // 使用 vector 来模拟作用域栈，支持查找
+    std::vector<std::unordered_map<std::string, SymbolInfo>> scopes;
 
     // 跟踪当前是否在循环内，用于检查 break/continue
     int loop_depth = 0;
