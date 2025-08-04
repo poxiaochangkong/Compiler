@@ -13,9 +13,18 @@
     <ClCompile Include="D:\Compiler\Compiler\src\ast.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Compiler\Compiler\src\SemanticAnalyzer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Compiler\Compiler\build\parser.tab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Compiler\Compiler\src\ast.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Compiler\Compiler\src\SemanticAnalyzer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -29,6 +38,10 @@
     <CustomBuild Include="D:\Compiler\Compiler\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="D:\Compiler\Compiler\src\lexer.l" />
+    <None Include="D:\Compiler\Compiler\src\parser.y" />
+  </ItemGroup>
+  <ItemGroup>
     <Filter Include="CMake Rules">
       <UniqueIdentifier>{49A44336-15C1-3C01-9BE0-908639955C6C}</UniqueIdentifier>
     </Filter>
@@ -38,13 +51,5 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{2318F15E-9E0F-3E0E-8D75-DB23DB7D1767}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\lexer.l">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\src\parser.y">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
