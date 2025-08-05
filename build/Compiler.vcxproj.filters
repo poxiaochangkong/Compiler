@@ -16,13 +16,13 @@
     <ClCompile Include="D:\Compiler\Compiler\src\SemanticAnalyzer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\CodeGenerator.cpp">
+    <ClCompile Include="D:\Compiler\Compiler\src\IRGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\IRGenerato.cpp">
+    <ClCompile Include="D:\Compiler\Compiler\src\CodeGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Optimizer.cpp">
+    <ClCompile Include="D:\Compiler\Compiler\src\Optimizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -36,16 +36,16 @@
     <ClInclude Include="D:\Compiler\Compiler\src\SemanticAnalyzer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ir.hpp">
+    <ClInclude Include="D:\Compiler\Compiler\src\ir.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\CodeGenerator.hpp">
+    <ClInclude Include="D:\Compiler\Compiler\src\IRGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\IRGenerator.hpp">
+    <ClInclude Include="D:\Compiler\Compiler\src\CodeGenerator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Optimizer.hpp">
+    <ClInclude Include="D:\Compiler\Compiler\src\Optimizer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

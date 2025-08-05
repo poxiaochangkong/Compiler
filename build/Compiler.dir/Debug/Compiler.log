@@ -1,2 +1,80 @@
-﻿  LINK : 没有找到 D:\Compiler\Compiler\build\Debug\Compiler.exe 或上一个增量链接没有生成它；正在执行完全链接
+﻿  [BISON][MyParser] Building parser with bison 3.8.2
+  [FLEX][MyLexer] Building scanner with flex 2.6.4
+  Building Custom Rule D:/Compiler/Compiler/CMakeLists.txt
+  parser.cpp
+  lexer.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(49,1): warning C4005: “INT8_MIN”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(59,1):
+  参见“INT8_MIN”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(50,1): warning C4005: “INT16_MIN”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(62,1):
+  参见“INT16_MIN”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(51,1): warning C4005: “INT32_MIN”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(65,1):
+  参见“INT32_MIN”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(53,1): warning C4005: “INT8_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(68,1):
+  参见“INT8_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(54,1): warning C4005: “INT16_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(71,1):
+  参见“INT16_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(55,1): warning C4005: “INT32_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(74,1):
+  参见“INT32_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(57,1): warning C4005: “UINT8_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(77,1):
+  参见“UINT8_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(58,1): warning C4005: “UINT16_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(80,1):
+  参见“UINT16_MAX”的前一个定义
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\include\stdint.h(59,1): warning C4005: “UINT32_MAX”: 宏重定义
+  (编译源文件“lexer.cpp”)
+  D:\Compiler\Compiler\build\lexer.cpp(83,1):
+  参见“UINT32_MAX”的前一个定义
+  
+  main.cpp
+D:\Compiler\Compiler\src\main.cpp(78,16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  ast.cpp
+  SemanticAnalyzer.cpp
+  IRGenerator.cpp
+D:\Compiler\Compiler\src\IRGenerator.cpp(334,16): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+D:\Compiler\Compiler\src\IRGenerator.cpp(353,44): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  CodeGenerator.cpp
+  Optimizer.cpp
+  正在运行 C/C++ 代码分析...
+  正在生成代码...
   Compiler.vcxproj -> D:\Compiler\Compiler\build\Debug\Compiler.exe
+D:\Compiler\Compiler\build\src\parser.y(111): warning C28183: “yyvsp[-3].strval”可以是“0”，并且是“yyvsp[0].funcs”中找到的值的副本: 这不符合函数“std::basic_string<char,std::char_traits<char>,std::allocator<char> >::{ctor}”的规范。
+D:\Compiler\Compiler\build\src\parser.y(160): warning C28183: “yyvsp[-4].strval”可以是“0”，并且是“yyvsp[0].funcs”中找到的值的副本: 这不符合函数“std::basic_string<char,std::char_traits<char>,std::allocator<char> >::{ctor}”的规范。
+D:\Compiler\Compiler\build\src\parser.y(195): warning C28183: “yyvsp[0].strval”可以是“0”，并且是“yyvsp[0].funcs”中找到的值的副本: 这不符合函数“std::basic_string<char,std::char_traits<char>,std::allocator<char> >::{ctor}”的规范。
+D:\Compiler\Compiler\src\ast.hpp(83): warning C26495: 未初始化变量 FuncDef::ret。始终初始化成员变量(type.6)。
+D:\Compiler\Compiler\src\ast.hpp(79): warning C26495: 未初始化变量 Param::type_val。始终初始化成员变量(type.6)。
+D:\Compiler\Compiler\build\lexer.cpp(1254): warning C6011: 取消对 NULL 指针“b->yy_ch_buf”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1302): warning C6011: 取消对 NULL 指针“(yy_buffer_stack)[(yy_buffer_stack_top)]->yy_ch_buf”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1501): warning C6011: 取消对 NULL 指针“yy_buffer_stack”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1533): warning C6011: 取消对 NULL 指针“yy_buffer_stack”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1566): warning C6011: 取消对 NULL 指针“b”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1624): warning C6011: 取消对 NULL 指针“b”的引用。查看第 1612 行以找出可能会发生此情况的前一位置
+D:\Compiler\Compiler\build\lexer.cpp(1681): warning C6011: 取消对 NULL 指针“yy_buffer_stack”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1728): warning C6387: “yy_buffer_stack”可能是“0”: 这不符合函数“memset”的规范。
+D:\Compiler\Compiler\build\lexer.cpp(1774): warning C6011: 取消对 NULL 指针“b”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1826): warning C6011: 取消对 NULL 指针“buf”的引用。
+D:\Compiler\Compiler\build\lexer.cpp(1835): warning C6011: 取消对 NULL 指针“b”的引用。
+D:\Compiler\Compiler\src\ir.hpp(15): warning C26495: 未初始化变量 Operand::kind。始终初始化成员变量(type.6)。
+D:\Compiler\Compiler\src\ir.hpp(50): warning C26495: 未初始化变量 Instruction::opcode。始终初始化成员变量(type.6)。

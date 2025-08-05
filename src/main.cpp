@@ -1,44 +1,116 @@
-// src/main.cpp
 #include <cstdio>
 #include <iostream>
-#include "ast.hpp"          // 使用 Program* 类型
-#include "SemanticAnalyzer.hpp"//语义分析
-// Bison 调试开关 (yydebug)
-// 在 parser.y 编译时加入 -t 标志
-extern int yydebug;
+#include <fstream>
+#include <string>
+#include <vector>
 
-// Flex 调试开关 (yy_flex_debug)
+#include "ast.hpp"
+#include "SemanticAnalyzer.hpp"
+#include "IRGenerator.hpp" // 引入 IRGenerator
+
+// --- 从外部文件链接的全局变量和函数 ---
+extern FILE* yyin;
+extern Program* g_root;
+extern int yyparse(void);
+extern int yydebug;
 extern int yy_flex_debug;
 
-int yylex(void);
-extern Program* g_root;// g_root 是指向 AST 根节点的全局指针，在 parser.y 中定义 
-extern FILE* yyin;// yyin 是词法分析器的输入文件流，在 lexer.l 中定义
-extern int yyparse(void);// yyparse() 是由 Bison 从 parser.y 生成的语法分析主函数
+// --- 辅助函数，用于将 IR 打印到控制台，方便调试 ---
+std::string operand_to_string(const Operand& op) {
+    switch (op.kind) {
+    case Operand::VAR:   return op.name;
+    case Operand::TEMP:  return "t" + std::to_string(op.id);
+    case Operand::CONST: return std::to_string(op.value);
+    case Operand::LABEL: return op.name.empty() ? ".L" + std::to_string(op.id) : op.name;
+    default: return "??";
+    }
+}
+
+void print_ir(const ModuleIR& module) {
+    for (const auto& func : module.functions) {
+        std::cout << "FUNCTION " << func.name << ":" << std::endl;
+        for (const auto& block : func.blocks) {
+            std::cout << block.label << ":" << std::endl;
+            for (const auto& instr : block.instructions) {
+                std::cout << "  ";
+                switch (instr.opcode) {
+                case Instruction::ADD:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " + " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::SUB:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " - " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::MUL:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " * " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::ASSIGN:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1);
+                    break;
+                case Instruction::RET:
+                    std::cout << "RET " << (instr.arg1.kind == Operand::VAR || instr.arg1.kind == Operand::TEMP || instr.arg1.kind == Operand::CONST ? operand_to_string(instr.arg1) : "");
+                    break;
+                case Instruction::JUMP:
+                    std::cout << "JUMP " << operand_to_string(instr.arg1);
+                    break;
+                case Instruction::JUMP_IF_ZERO:
+                    std::cout << "JUMP_IF_ZERO " << operand_to_string(instr.arg1) << ", " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::JUMP_IF_NZERO:
+                    std::cout << "JUMP_IF_NZERO " << operand_to_string(instr.arg1) << ", " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::CALL:
+                    std::cout << operand_to_string(instr.result) << " = CALL " << operand_to_string(instr.arg1);
+                    break;
+                    // ... 在这里添加打印其他指令的逻辑 ...
+                default:
+                    std::cout << "OpCode(" << instr.opcode << ")";
+                    break;
+                }
+                std::cout << std::endl;
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc > 1) {
         yyin = fopen(argv[1], "r");
         if (!yyin) {
-            perror("fopen");
+            perror("Error opening file");
             return 1;
         }
     }
-    yydebug = 1;        // 开启 Bison 语法分析调试信息
-    yy_flex_debug = 1;  // 开启 Flex 词法分析调试信息
 
-    //// 这一步会不断匹配 lexer.l 中的规则，产生 token/动作,输入缓冲区（默认4096字节）
-    //int i=yylex();    
-    // 调用 yyparse() 启动完整的词法和语法分析过程。
-    // yyparse() 会返回 0 表示成功，非 0 表示失败。
+    // yydebug = 1;
+    // yy_flex_debug = 1;
+
     int parse_result = yyparse();
 
-    // 检查分析结果
     if (parse_result == 0 && g_root != nullptr) {
         std::cout << "\nParsing successful! AST created." << std::endl;
 
-        std::cout << "--- Starting Semantic Analysis ---" << std::endl;
+        // --- 语义分析 ---
         SemanticAnalyzer analyzer;
         analyzer.analyze(g_root);
-        std::cout << "--- Semantic Analysis Finished ---" << std::endl;
+        std::cout << "Semantic analysis finished." << std::endl;
+
+        // --- 中间代码生成 ---
+        std::cout << "\n--- Starting IR Generation ---" << std::endl;
+        IRGenerator ir_gen;
+        ModuleIR ir_module = ir_gen.generate(g_root);
+        std::cout << "--- IR Generation Finished ---" << std::endl;
+
+        // --- 打印生成的 IR 以便调试 ---
+        std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
+        print_ir(ir_module);
+
+        // --- (未来的步骤) 目标代码生成 ---
+        // CodeGenerator code_gen;
+        // std::string assembly_code = code_gen.generate(ir_module);
+        // std::ofstream out_file("output.s");
+        // out_file << assembly_code;
+        // out_file.close();
 
     }
     else {

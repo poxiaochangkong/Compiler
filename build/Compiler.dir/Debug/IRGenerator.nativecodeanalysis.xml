@@ -51,4 +51,21 @@
     </ADDITIONALINFO>
     <PATH></PATH>
   </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>D:\Compiler\Compiler\src\</FILEPATH>
+      <FILENAME>ir.hpp</FILENAME>
+      <LINE>50</LINE>
+      <COLUMN>0</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>未初始化变量 Instruction::opcode。始终初始化成员变量(type.6)。</DESCRIPTION>
+    <FUNCTION>Instruction::{ctor}</FUNCTION>
+    <DECORATED>??0Instruction@@QEAA@XZ</DECORATED>
+    <FUNCLINE>50</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>Instruction::opcode</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
 </DEFECTS>

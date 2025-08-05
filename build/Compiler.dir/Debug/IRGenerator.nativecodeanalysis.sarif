@@ -90,6 +90,35 @@
           "properties": {
             "targetSymbol": "Operand::value"
           }
+        },
+        {
+          "ruleId": "C26495",
+          "message": {
+            "text": "未初始化变量 Instruction::opcode。始终初始化成员变量(type.6)。"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
+                },
+                "region": {
+                  "startLine": 50,
+                  "startColumn": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Instruction::{ctor}",
+                  "decoratedName": "??0Instruction@@QEAA@XZ",
+                  "kind": "function"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "targetSymbol": "Instruction::opcode"
+          }
         }
       ],
       "tool": {
@@ -119,29 +148,13 @@
         },
         {
           "location": {
-            "uri": "file:///d:/compiler/compiler/src/main.cpp"
+            "uri": "file:///d:/compiler/compiler/src/irgenerator.cpp"
           },
           "roles": [
             "analysisTarget"
           ],
           "hashes": {
-            "sha-256": "35af51c7e5d5c29b621a52f14c6f528791f24f480747df209e476af849608862"
-          }
-        },
-        {
-          "location": {
-            "uri": "file:///d:/compiler/compiler/src/ast.hpp"
-          },
-          "hashes": {
-            "sha-256": "1caf35759511948a2ec1c031dbae74991530e14f8c294349dcc56e12c9be8d3b"
-          }
-        },
-        {
-          "location": {
-            "uri": "file:///d:/compiler/compiler/src/semanticanalyzer.hpp"
-          },
-          "hashes": {
-            "sha-256": "58d382d95a9475e70c91227f86d22c73b7d7af93c35fc27694c03b83fb18edae"
+            "sha-256": "6eaa3ac0f00645f86b7672eb8f27f75b9c78ff54f982cf1cc68cf4d9834732be"
           }
         },
         {
@@ -150,6 +163,14 @@
           },
           "hashes": {
             "sha-256": "573c65eb3a710fbf39263cf465e8609ddf61ad68bd4d8570266bd8eba50f3c75"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///d:/compiler/compiler/src/ast.hpp"
+          },
+          "hashes": {
+            "sha-256": "1caf35759511948a2ec1c031dbae74991530e14f8c294349dcc56e12c9be8d3b"
           }
         }
       ]
