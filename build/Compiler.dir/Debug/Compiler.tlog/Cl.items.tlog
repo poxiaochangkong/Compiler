@@ -2,3 +2,4 @@ D:\Compiler\Compiler\build\parser.cpp;D:\Compiler\Compiler\build\Compiler.dir\De
 D:\Compiler\Compiler\build\lexer.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\lexer.obj
 D:\Compiler\Compiler\src\main.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\main.obj
 D:\Compiler\Compiler\src\ast.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\ast.obj
+D:\Compiler\Compiler\src\SemanticAnalyzer.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\SemanticAnalyzer.obj

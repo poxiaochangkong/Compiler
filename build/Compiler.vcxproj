@@ -521,6 +521,13 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Compiler\Compiler\build\lexer.cpp" />
     <ClCompile Include="D:\Compiler\Compiler\src\main.cpp" />
     <ClCompile Include="D:\Compiler\Compiler\src\ast.cpp" />
+    <ClCompile Include="D:\Compiler\Compiler\src\SemanticAnalyzer.cpp" />
+    <ClInclude Include="D:\Compiler\Compiler\src\ast.hpp" />
+    <None Include="D:\Compiler\Compiler\src\lexer.l">
+    </None>
+    <None Include="D:\Compiler\Compiler\src\parser.y">
+    </None>
+    <ClInclude Include="D:\Compiler\Compiler\src\SemanticAnalyzer.hpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
