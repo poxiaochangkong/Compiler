@@ -84,12 +84,17 @@ void print_ir(const ModuleIR& module) {
                     std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1);
                     break;
 
-                    // --- 函数 ---
+                
+                // --- 函数 ---
+                case Instruction::PARAM: // <-- 新增
+                    std::cout << "PARAM " << operand_to_string(instr.arg1);
+                    break;
                 case Instruction::CALL:
-                    std::cout << operand_to_string(instr.result) << " = CALL " << operand_to_string(instr.arg1);
+                    // 现在也打印参数数量
+                    std::cout << operand_to_string(instr.result) << " = CALL " << operand_to_string(instr.arg1) << ", " << operand_to_string(instr.arg2);
                     break;
                 case Instruction::RET:
-                    std::cout << "RET " << (instr.arg1.kind != Operand::LABEL ? operand_to_string(instr.arg1) : ""); // 只有在有返回值时才打印
+                    std::cout << "RET " << (instr.arg1.kind != Operand::NONE ? operand_to_string(instr.arg1) : "");
                     break;
 
                     // --- 分支与标签 ---

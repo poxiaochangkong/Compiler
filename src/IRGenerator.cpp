@@ -329,32 +329,39 @@ void IRGenerator::visit(UnaryExpr* node) {
 }
 
 void IRGenerator::visit(CallExpr* node) {
-    // 1. 为所有参数生成 PARAM 指令
-    // 注意：在真实的调用约定中，参数传递顺序是相反的（从右到左）
-    for (int i = node->args.size() - 1; i >= 0; --i) {
-        node->args[i]->accept(this);
-        // 现实中可能需要一个 PARAM 指令，但这里我们简化处理
-        // 假设 CodeGenerator 会处理参数
+    // 1. 为所有参数生成操作数
+    std::vector<Operand> args_ops;
+    for (auto* arg_expr : node->args) {
+        arg_expr->accept(this);
+        args_ops.push_back(m_result_op);
     }
 
-    // 2. 生成 CALL 指令
+    // 2. 按照 C 语言的调用约定 (cdecl)，参数从右到左入栈。
+    //    因此我们反向遍历参数，为每个参数生成一条 PARAM 指令。
+    std::reverse(args_ops.begin(), args_ops.end());
+    for (const auto& arg_op : args_ops) {
+        current_block->instructions.push_back({ Instruction::PARAM, {}, arg_op });
+    }
+
+    // 3. 生成 CALL 指令
     Operand callee_op;
     callee_op.kind = Operand::VAR; // 函数名
     callee_op.name = node->callee;
 
+    // 函数的返回值存入一个新的临时变量
     Operand result_op = new_temp();
 
     Instruction call_instr;
     call_instr.opcode = Instruction::CALL;
     call_instr.result = result_op;
     call_instr.arg1 = callee_op;
-    // 参数数量可以隐式传递或作为 arg2
+    // 将参数数量作为 arg2 传递，方便后续代码生成器知道要从栈上清理多少空间
     call_instr.arg2.kind = Operand::CONST;
     call_instr.arg2.value = node->args.size();
 
     current_block->instructions.push_back(call_instr);
 
-    // 3. 将函数调用的返回值作为当前表达式的结果
+    // 4. 将函数调用的返回值作为当前表达式的结果
     m_result_op = result_op;
 }
 

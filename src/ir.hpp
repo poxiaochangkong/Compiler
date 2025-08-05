@@ -7,8 +7,8 @@
 
 // 操作数：可以是具名变量、临时变量、常量或标签
 struct Operand {
-    enum Kind { VAR, TEMP, CONST, LABEL };
-    Kind kind;
+    enum Kind { VAR, TEMP, CONST, LABEL, NONE};
+    Kind kind = NONE;
     std::string name; // 用于 VAR
     int id;           // 用于 TEMP 和 LABEL
     int value;        // 用于 CONST
@@ -34,7 +34,9 @@ struct Instruction {
         ASSIGN,
 
         // 函数
-        CALL, RET,
+        PARAM,//传递参数
+        CALL,
+        RET,
 
         // 分支与标签
         JUMP,           // 无条件跳转
