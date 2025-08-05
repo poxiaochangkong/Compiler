@@ -1,2 +1,0 @@
-D:\Compiler\Compiler\build\Debug\Compiler.exe.lastcodeanalysissucceeded
-D:\Compiler\Compiler\build\Compiler.dir\Debug\NativeCodeAnalysis.read.1.tlog
