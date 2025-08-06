@@ -162,43 +162,40 @@ void IRGenerator::visit(ContinueStmt* node) {
 }
 
 void IRGenerator::visit(IfStmt* node) {
+    // 1. 创建需要的块
     BasicBlock* then_block = create_block();
     BasicBlock* merge_block = create_block();
-    BasicBlock* else_block = node->elseS ? create_block() : merge_block;
+    BasicBlock* else_block = node->elseS ? create_block() : nullptr; // 没 else 就不创建
 
-    // 1. 计算条件表达式
+    // 如果为假，跳转的目标是 else 块（如果存在）或 merge 块（如果不存在）
+    Operand false_dest_label;
+    false_dest_label.name = else_block ? else_block->label : merge_block->label;
+
+    // 2. 计算条件
     node->cond->accept(this);
 
-    // 2. 生成条件跳转指令
-    Operand false_dest_label;
-    false_dest_label.kind = Operand::LABEL;
-    false_dest_label.name = else_block->label;
+    // 3. 只需一条条件跳转指令
+    // 如果条件为假，跳转到 false_dest_label
     current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, false_dest_label });
-    // 如果条件为真，则顺序执行到 then 块（需要先跳转）
-    Operand true_dest_label;
-    true_dest_label.kind = Operand::LABEL;
-    true_dest_label.name = then_block->label;
-    current_block->instructions.push_back({ Instruction::JUMP, {}, true_dest_label });
+    // 如果条件为真，程序会从这里“自然掉落”，进入我们即将生成的 then_block
 
-
-    // 3. 生成 Then 块
+    // 4. 紧接着生成 then_block 的代码
     add_block(then_block);
     node->thenS->accept(this);
-    // Then 块结束后无条件跳转到 Merge 块
-    Operand merge_dest_label;
-    merge_dest_label.kind = Operand::LABEL;
-    merge_dest_label.name = merge_block->label;
-    current_block->instructions.push_back({ Instruction::JUMP, {}, merge_dest_label });
 
-    // 4. 生成 Else 块 (如果存在)
-    if (node->elseS) {
-        add_block(else_block);
-        node->elseS->accept(this);
-        // Else 块结束后也无条件跳转到 Merge 块
-        current_block->instructions.push_back({ Instruction::JUMP, {}, merge_dest_label });
+    // 5. then_block 必须以跳转结束，以跳过 else_block
+    // (除非 then_block 已经有 return 了)
+    if (current_block->instructions.empty() || current_block->instructions.back().opcode != Instruction::RET) {
+        current_block->instructions.push_back({ Instruction::JUMP, {}, {Operand::LABEL, merge_block->label} });
     }
 
-    // 5. 后续代码在 Merge 块中生成
+    // 6. 如果有 else，生成它的代码
+    if (else_block) {
+        add_block(else_block);
+        node->elseS->accept(this);
+    }
+
+    // 7. 最后的汇合点
     add_block(merge_block);
 }
 
@@ -259,44 +256,51 @@ void IRGenerator::visit(BinaryExpr* node) {
     // --- 处理短路求值 ---
     if (node->op == BinOp::LAnd || node->op == BinOp::LOr) {
         Operand res = new_temp();
-        BasicBlock* short_circuit_block = create_block();
+        BasicBlock* set_true_block = create_block();
+        BasicBlock* set_false_block = create_block();
         BasicBlock* end_block = create_block();
 
-        Operand short_circuit_label;
-        short_circuit_label.kind = Operand::LABEL;
-        short_circuit_label.name = short_circuit_block->label;
+        Operand set_true_label; set_true_label.kind = Operand::LABEL; set_true_label.name = set_true_block->label;
+        Operand set_false_label; set_false_label.kind = Operand::LABEL; set_false_label.name = set_false_block->label;
+        Operand end_label; end_label.kind = Operand::LABEL; end_label.name = end_block->label;
 
-        Operand end_label;
-        end_label.kind = Operand::LABEL;
-        end_label.name = end_block->label;
-
+        // --- 计算左操作数 ---
         node->lhs->accept(this);
+        Operand lhs_val = m_result_op;
+
         if (node->op == BinOp::LAnd) {
-            // a && b: if a is 0, result is 0, jump to end.
-            current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, short_circuit_label });
+            // a && b: 如果 a 为假，则整个表达式为假
+            current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, lhs_val, set_false_label });
         }
-        else { // LOr
-            // a || b: if a is not 0, result is 1, jump to end.
-            current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, m_result_op, short_circuit_label });
+        else { // BinOp::LOr
+            // a || b: 如果 a 为真，则整个表达式为真
+            current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, lhs_val, set_true_label });
         }
 
-        // 如果没有短路，则计算右侧表达式
+        // --- 如果没有短路，计算右操作数 ---
         node->rhs->accept(this);
-        // 将右侧表达式的结果（0或非0）作为整个表达式的结果
-        current_block->instructions.push_back({ Instruction::ASSIGN, res, m_result_op });
+        Operand rhs_val = m_result_op;
+        // 如果 rhs 为假，则整个表达式为假
+        current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, rhs_val, set_false_label });
+        // 否则，整个表达式为真
+        current_block->instructions.push_back({ Instruction::JUMP, {}, set_true_label });
+
+        // --- 设置结果的块 ---
+        add_block(set_true_block);
+        current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 1} });
         current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
 
-        // 短路发生时，直接设置结果
-        add_block(short_circuit_block);
-        int short_val = (node->op == BinOp::LAnd) ? 0 : 1;
-        current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, short_val} });
+        add_block(set_false_block);
+        current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 0} });
+        current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
 
+        // --- 汇合点 ---
         add_block(end_block);
         m_result_op = res;
         return;
     }
 
-    // --- 处理普通二元运算 ---
+    // --- 处理普通二元运算 (保持不变) ---
     node->lhs->accept(this);
     Operand lhs_op = m_result_op;
 
