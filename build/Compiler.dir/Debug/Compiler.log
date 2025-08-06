@@ -46,9 +46,13 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.3313
   参见“UINT32_MAX”的前一个定义
   
   main.cpp
-D:\Compiler\Compiler\src\main.cpp(19,16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+D:\Compiler\Compiler\src\main.cpp(124,16): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   ast.cpp
   SemanticAnalyzer.cpp
+  IRGenerator.cpp
+D:\Compiler\Compiler\src\IRGenerator.cpp(370,44): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  CodeGenerator.cpp
+  Optimizer.cpp
+  SpillEverythingAllocator.cpp
   正在生成代码...
-  LINK : 没有找到 D:\Compiler\Compiler\build\Debug\Compiler.exe 或上一个增量链接没有生成它；正在执行完全链接
   Compiler.vcxproj -> D:\Compiler\Compiler\build\Debug\Compiler.exe

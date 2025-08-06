@@ -1,44 +1,157 @@
-// src/main.cpp
 #include <cstdio>
 #include <iostream>
-#include "ast.hpp"          // 使用 Program* 类型
-#include "SemanticAnalyzer.hpp"//语义分析
-// Bison 调试开关 (yydebug)
-// 在 parser.y 编译时加入 -t 标志
-extern int yydebug;
+#include <fstream>
+#include <string>
+#include <vector>
 
-// Flex 调试开关 (yy_flex_debug)
+#include "ast.hpp"
+#include "SemanticAnalyzer.hpp"
+#include "IRGenerator.hpp"
+#include "CodeGenerator.hpp"    
+
+// --- 从外部文件链接的全局变量和函数 ---
+extern FILE* yyin;
+extern Program* g_root;
+extern int yyparse(void);
+extern int yydebug;
 extern int yy_flex_debug;
 
-int yylex(void);
-extern Program* g_root;// g_root 是指向 AST 根节点的全局指针，在 parser.y 中定义 
-extern FILE* yyin;// yyin 是词法分析器的输入文件流，在 lexer.l 中定义
-extern int yyparse(void);// yyparse() 是由 Bison 从 parser.y 生成的语法分析主函数
+// --- 辅助函数，用于将 IR 打印到控制台，方便调试 ---
+
+// 将 Operand 结构体转换为可读字符串
+std::string operand_to_string(const Operand& op) {
+    switch (op.kind) {
+    case Operand::VAR:   return op.name;
+    case Operand::TEMP:  return "t" + std::to_string(op.id);
+    case Operand::CONST: return std::to_string(op.value);
+    case Operand::LABEL:
+        // 如果标签有名字（如函数入口），用名字；否则用ID
+        return op.name.empty() ? ".L" + std::to_string(op.id) : op.name;
+    default: return "??";
+    }
+}
+
+// 打印整个模块的 IR
+void print_ir(const ModuleIR& module) {
+    for (const auto& func : module.functions) {
+        std::cout << "FUNCTION " << func.name << ":" << std::endl;
+        for (const auto& block : func.blocks) {
+            std::cout << block.label << ":" << std::endl;
+            for (const auto& instr : block.instructions) {
+                std::cout << "  ";
+                switch (instr.opcode) {
+                    // --- 算术运算 ---
+                case Instruction::ADD:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " + " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::SUB:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " - " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::MUL:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " * " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::DIV:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " / " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::MOD:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " % " << operand_to_string(instr.arg2);
+                    break;
+
+                    // --- 逻辑与关系运算 ---
+                case Instruction::NOT:
+                    std::cout << operand_to_string(instr.result) << " = NOT " << operand_to_string(instr.arg1);
+                    break;
+                case Instruction::EQ:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " == " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::NEQ:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " != " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::LT:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " < " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::GT:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " > " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::LE:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " <= " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::GE:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1) << " >= " << operand_to_string(instr.arg2);
+                    break;
+
+                    // --- 赋值 ---
+                case Instruction::ASSIGN:
+                    std::cout << operand_to_string(instr.result) << " = " << operand_to_string(instr.arg1);
+                    break;
+
+                
+                // --- 函数 ---
+                case Instruction::PARAM: // <-- 新增
+                    std::cout << "PARAM " << operand_to_string(instr.arg1);
+                    break;
+                case Instruction::CALL:
+                    // 现在也打印参数数量
+                    std::cout << operand_to_string(instr.result) << " = CALL " << operand_to_string(instr.arg1) << ", " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::RET:
+                    std::cout << "RET " << (instr.arg1.kind != Operand::NONE ? operand_to_string(instr.arg1) : "");
+                    break;
+
+                    // --- 分支与标签 ---
+                case Instruction::JUMP:
+                    std::cout << "JUMP " << operand_to_string(instr.arg1);
+                    break;
+                case Instruction::JUMP_IF_ZERO:
+                    std::cout << "IF " << operand_to_string(instr.arg1) << " == 0 JUMP " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::JUMP_IF_NZERO:
+                    std::cout << "IF " << operand_to_string(instr.arg1) << " != 0 JUMP " << operand_to_string(instr.arg2);
+                    break;
+                case Instruction::LABEL:
+                    // 标签本身就是块的名字，通常不需要作为指令打印
+                    continue; // 跳过打印
+                }
+                std::cout << std::endl;
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc > 1) {
         yyin = fopen(argv[1], "r");
         if (!yyin) {
-            perror("fopen");
+            perror("Error opening file");
             return 1;
         }
     }
-    yydebug = 1;        // 开启 Bison 语法分析调试信息
-    yy_flex_debug = 1;  // 开启 Flex 词法分析调试信息
 
-    //// 这一步会不断匹配 lexer.l 中的规则，产生 token/动作,输入缓冲区（默认4096字节）
-    //int i=yylex();    
-    // 调用 yyparse() 启动完整的词法和语法分析过程。
-    // yyparse() 会返回 0 表示成功，非 0 表示失败。
+    // yydebug = 1;
+    // yy_flex_debug = 1;
+
     int parse_result = yyparse();
 
-    // 检查分析结果
     if (parse_result == 0 && g_root != nullptr) {
         std::cout << "\nParsing successful! AST created." << std::endl;
 
-        std::cout << "--- Starting Semantic Analysis ---" << std::endl;
         SemanticAnalyzer analyzer;
         analyzer.analyze(g_root);
-        std::cout << "--- Semantic Analysis Finished ---" << std::endl;
+        std::cout << "Semantic analysis finished." << std::endl;
+
+        std::cout << "\n--- Starting IR Generation ---" << std::endl;
+        IRGenerator ir_gen;
+        ModuleIR ir_module = ir_gen.generate(g_root);
+        std::cout << "--- IR Generation Finished ---" << std::endl;
+
+        std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
+        print_ir(ir_module);
+        CodeGenerator code_gen;
+        std::string assembly_code = code_gen.generate(ir_module);
+
+        // --- 【核心修改】将汇编代码输出到标准输出流 ---
+        std::cout << assembly_code;
 
     }
     else {
