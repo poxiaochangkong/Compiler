@@ -72,11 +72,17 @@ void IRGenerator::visit(FuncDef* node) {
     current_func = &m_module.functions.back();
     current_func->name = node->name;
 
+    // --- 【核心修改】---
+    // 遍历 AST 中的参数，并将信息复制到 FunctionIR 中
+    for (auto* param_ast : node->params) {
+        current_func->params.push_back({ param_ast->name, param_ast->type_val });
+    }
+
     // 每个函数都有一个入口块
     BasicBlock* entry_block = create_block(".entry_");
     add_block(entry_block);
 
-    // 为函数参数生成对应的 IR 操作数（虽然在这个阶段不直接生成指令）
+    // 为函数参数生成对应的 IR 操作数（这个逻辑可以保持）
     for (auto* param : node->params) {
         param->accept(this);
     }

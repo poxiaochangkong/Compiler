@@ -4,7 +4,10 @@
 #pragma once
 #include <string>
 #include <vector>
-
+#include "ast.hpp"
+// 引入 ast.hpp 只是为了使用 TypeKind 枚举，
+// 更好的做法是在 ir.hpp 中也定义一份，以保持后端和前端的解耦。
+// 
 // 操作数：可以是具名变量、临时变量、常量或标签
 struct Operand {
     enum Kind { VAR, TEMP, CONST, LABEL, NONE};
@@ -51,6 +54,11 @@ struct Instruction {
     Operand arg2;
 };
 
+struct ParamInfo {
+    std::string name;
+    TypeKind TY_INT; // 暂时都是 int，为未来扩展保留
+};
+
 // 基本块 (Basic Block)
 struct BasicBlock {
     std::string label;
@@ -60,6 +68,7 @@ struct BasicBlock {
 // 函数的 IR 表示
 struct FunctionIR {
     std::string name;
+    std::vector<ParamInfo> params;
     std::vector<BasicBlock> blocks;
 };
 
