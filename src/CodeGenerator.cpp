@@ -44,18 +44,75 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
         m_output << m_allocator->storeOperand(instr.result, "t2");
         break;
     }
-    case Instruction::LE: {
+    case Instruction::NOT: { // 逻辑非
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << "  seqz t0, t0\n"; // 如果 t0 为 0，则 t0=1；否则 t0=0
+        m_output << m_allocator->storeOperand(instr.result, "t0");
+        break;
+    }
+
+    case Instruction::EQ: { // 等于 ==
         m_output << m_allocator->loadOperand(instr.arg1, "t0");
         m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  sgt t2, t0, t1\n";
-        m_output << "  xori t2, t2, 1\n";
+        m_output << "  sub t2, t0, t1\n";
+        m_output << "  seqz t2, t2\n"; // 如果 t2 (差值) 为 0，则 t2=1
         m_output << m_allocator->storeOperand(instr.result, "t2");
         break;
     }
-    case Instruction::JUMP_IF_ZERO:
+
+    case Instruction::NEQ: { // 不等于 !=
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << m_allocator->loadOperand(instr.arg2, "t1");
+        m_output << "  sub t2, t0, t1\n";
+        m_output << "  snez t2, t2\n"; // 如果 t2 (差值) 不为 0，则 t2=1
+        m_output << m_allocator->storeOperand(instr.result, "t2");
+        break;
+    }
+
+    case Instruction::LT: { // 小于 <
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << m_allocator->loadOperand(instr.arg2, "t1");
+        m_output << "  slt t2, t0, t1\n"; // 如果 t0 < t1，则 t2=1
+        m_output << m_allocator->storeOperand(instr.result, "t2");
+        break;
+    }
+
+    case Instruction::GT: { // 大于 >
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << m_allocator->loadOperand(instr.arg2, "t1");
+        m_output << "  sgt t2, t0, t1\n"; // 如果 t0 > t1，则 t2=1 (sgt是伪指令，等价于 slt t2, t1, t0)
+        m_output << m_allocator->storeOperand(instr.result, "t2");
+        break;
+    }
+
+    case Instruction::LE: { // 小于等于 <= (已有)
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << m_allocator->loadOperand(instr.arg2, "t1");
+        m_output << "  sgt t2, t0, t1\n"; // t2 = (t0 > t1)
+        m_output << "  xori t2, t2, 1\n"; // t2 = !t2
+        m_output << m_allocator->storeOperand(instr.result, "t2");
+        break;
+    }
+
+    case Instruction::GE: { // 大于等于 >=
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << m_allocator->loadOperand(instr.arg2, "t1");
+        m_output << "  slt t2, t0, t1\n"; // t2 = (t0 < t1)
+        m_output << "  xori t2, t2, 1\n"; // t2 = !t2
+        m_output << m_allocator->storeOperand(instr.result, "t2");
+        break;
+    }
+
+    case Instruction::JUMP_IF_ZERO: {
         m_output << m_allocator->loadOperand(instr.arg1, "t0");
         m_output << "  beqz t0, " << instr.arg2.name << "\n";
         break;
+    }
+
+    case Instruction::JUMP_IF_NZERO: { // JUMP_IF_NZERO (不为0则跳转)
+        m_output << m_allocator->loadOperand(instr.arg1, "t0");
+        m_output << "  bnez t0, " << instr.arg2.name << "\n";
+        ;
     case Instruction::JUMP:
         m_output << "  j " << instr.arg1.name << "\n";
         break;
@@ -90,6 +147,7 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
     default:
         m_output << "  # Unhandled OpCode: " << instr.opcode << "\n";
         break;
+    }
     }
 }
 
