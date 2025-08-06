@@ -4,31 +4,14 @@
     <SFA>
       <FILEPATH>D:\Compiler\Compiler\src\</FILEPATH>
       <FILENAME>ir.hpp</FILENAME>
-      <LINE>15</LINE>
-      <COLUMN>0</COLUMN>
-    </SFA>
-    <DEFECTCODE>26495</DEFECTCODE>
-    <DESCRIPTION>未初始化变量 Operand::kind。始终初始化成员变量(type.6)。</DESCRIPTION>
-    <FUNCTION>Operand::{ctor}</FUNCTION>
-    <DECORATED>??0Operand@@QEAA@XZ</DECORATED>
-    <FUNCLINE>15</FUNCLINE>
-    <ADDITIONALINFO>
-      <targetSymbol>Operand::kind</targetSymbol>
-    </ADDITIONALINFO>
-    <PATH></PATH>
-  </DEFECT>
-  <DEFECT>
-    <SFA>
-      <FILEPATH>D:\Compiler\Compiler\src\</FILEPATH>
-      <FILENAME>ir.hpp</FILENAME>
-      <LINE>15</LINE>
+      <LINE>18</LINE>
       <COLUMN>0</COLUMN>
     </SFA>
     <DEFECTCODE>26495</DEFECTCODE>
     <DESCRIPTION>未初始化变量 Operand::id。始终初始化成员变量(type.6)。</DESCRIPTION>
     <FUNCTION>Operand::{ctor}</FUNCTION>
     <DECORATED>??0Operand@@QEAA@XZ</DECORATED>
-    <FUNCLINE>15</FUNCLINE>
+    <FUNCLINE>18</FUNCLINE>
     <ADDITIONALINFO>
       <targetSymbol>Operand::id</targetSymbol>
     </ADDITIONALINFO>
@@ -38,14 +21,14 @@
     <SFA>
       <FILEPATH>D:\Compiler\Compiler\src\</FILEPATH>
       <FILENAME>ir.hpp</FILENAME>
-      <LINE>15</LINE>
+      <LINE>18</LINE>
       <COLUMN>0</COLUMN>
     </SFA>
     <DEFECTCODE>26495</DEFECTCODE>
     <DESCRIPTION>未初始化变量 Operand::value。始终初始化成员变量(type.6)。</DESCRIPTION>
     <FUNCTION>Operand::{ctor}</FUNCTION>
     <DECORATED>??0Operand@@QEAA@XZ</DECORATED>
-    <FUNCLINE>15</FUNCLINE>
+    <FUNCLINE>18</FUNCLINE>
     <ADDITIONALINFO>
       <targetSymbol>Operand::value</targetSymbol>
     </ADDITIONALINFO>
@@ -55,14 +38,14 @@
     <SFA>
       <FILEPATH>D:\Compiler\Compiler\src\</FILEPATH>
       <FILENAME>ir.hpp</FILENAME>
-      <LINE>50</LINE>
+      <LINE>55</LINE>
       <COLUMN>0</COLUMN>
     </SFA>
     <DEFECTCODE>26495</DEFECTCODE>
     <DESCRIPTION>未初始化变量 Instruction::opcode。始终初始化成员变量(type.6)。</DESCRIPTION>
     <FUNCTION>Instruction::{ctor}</FUNCTION>
     <DECORATED>??0Instruction@@QEAA@XZ</DECORATED>
-    <FUNCLINE>50</FUNCLINE>
+    <FUNCLINE>55</FUNCLINE>
     <ADDITIONALINFO>
       <targetSymbol>Instruction::opcode</targetSymbol>
     </ADDITIONALINFO>

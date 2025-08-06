@@ -7,35 +7,6 @@
         {
           "ruleId": "C26495",
           "message": {
-            "text": "未初始化变量 Operand::kind。始终初始化成员变量(type.6)。"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
-                },
-                "region": {
-                  "startLine": 15,
-                  "startColumn": 1
-                }
-              },
-              "logicalLocations": [
-                {
-                  "fullyQualifiedName": "Operand::{ctor}",
-                  "decoratedName": "??0Operand@@QEAA@XZ",
-                  "kind": "function"
-                }
-              ]
-            }
-          ],
-          "properties": {
-            "targetSymbol": "Operand::kind"
-          }
-        },
-        {
-          "ruleId": "C26495",
-          "message": {
             "text": "未初始化变量 Operand::id。始终初始化成员变量(type.6)。"
           },
           "locations": [
@@ -45,7 +16,7 @@
                   "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
                 },
                 "region": {
-                  "startLine": 15,
+                  "startLine": 18,
                   "startColumn": 1
                 }
               },
@@ -74,7 +45,7 @@
                   "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
                 },
                 "region": {
-                  "startLine": 15,
+                  "startLine": 18,
                   "startColumn": 1
                 }
               },
@@ -103,7 +74,7 @@
                   "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
                 },
                 "region": {
-                  "startLine": 50,
+                  "startLine": 55,
                   "startColumn": 1
                 }
               },
@@ -143,7 +114,7 @@
             "resultFile"
           ],
           "hashes": {
-            "sha-256": "9cf657f193baf99c03024c3df68683b4ff7d435d349e777bbf4d9f6e15c8b125"
+            "sha-256": "a238070b4f6e5ecdbf3fcb829fdd3e2163a25de69caf75941fb27b2d5ac14300"
           }
         },
         {
@@ -154,7 +125,7 @@
             "analysisTarget"
           ],
           "hashes": {
-            "sha-256": "6eaa3ac0f00645f86b7672eb8f27f75b9c78ff54f982cf1cc68cf4d9834732be"
+            "sha-256": "e5ddf88e9fa882f9303004bb36eee505492420dfad122bbdc207a7fcd8523c8f"
           }
         },
         {

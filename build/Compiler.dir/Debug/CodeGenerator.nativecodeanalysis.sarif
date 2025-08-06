@@ -26,7 +26,31 @@
             "analysisTarget"
           ],
           "hashes": {
-            "sha-256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            "sha-256": "454477a1a01b3ee2d7a8397aec5d7b05a9fcf7cbba9b060b4fc6c293b1b63e75"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///d:/compiler/compiler/src/codegenerator.hpp"
+          },
+          "hashes": {
+            "sha-256": "e7d60d28ca632594f1b7573f906714c91da9d7f05dad4bea23ba93e7aec59f1f"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///d:/compiler/compiler/src/ir.hpp"
+          },
+          "hashes": {
+            "sha-256": "a238070b4f6e5ecdbf3fcb829fdd3e2163a25de69caf75941fb27b2d5ac14300"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///d:/compiler/compiler/src/ast.hpp"
+          },
+          "hashes": {
+            "sha-256": "1caf35759511948a2ec1c031dbae74991530e14f8c294349dcc56e12c9be8d3b"
           }
         }
       ]

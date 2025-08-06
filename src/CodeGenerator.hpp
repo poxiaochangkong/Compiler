@@ -30,6 +30,7 @@ private:
     std::map<std::string, int> m_var_offsets;
     int m_current_stack_size = 0; // 当前函数所需的总栈大小
     int m_param_count = 0; // 用于跟踪 PARAM 指令的计数器
+    int m_param_idx;
 
     // --- 辅助函数 ---
 
@@ -37,10 +38,10 @@ private:
     void generate_function(const FunctionIR& func);
 
     // 为一个基本块生成汇编代码
-    void generate_block(const BasicBlock& block);
+    //void generate_block(const BasicBlock& block);
 
     // 为单条 IR 指令生成汇编代码
-    void generate_instruction(const Instruction& instr);
+    void generate_instruction(const Instruction& instr, const std::map<std::string, int>& offsets);
 
     // 确保操作数的值被加载到一个寄存器中，并返回该寄存器的名字
     // reg_idx 用于指定使用哪个临时寄存器 (0 for t0, 1 for t1, etc.)

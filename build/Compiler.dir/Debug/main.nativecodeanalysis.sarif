@@ -7,7 +7,7 @@
         {
           "ruleId": "C26495",
           "message": {
-            "text": "未初始化变量 Operand::kind。始终初始化成员变量(type.6)。"
+            "text": "未初始化变量 Operand::value。始终初始化成员变量(type.6)。"
           },
           "locations": [
             {
@@ -16,7 +16,7 @@
                   "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
                 },
                 "region": {
-                  "startLine": 15,
+                  "startLine": 18,
                   "startColumn": 1
                 }
               },
@@ -30,7 +30,7 @@
             }
           ],
           "properties": {
-            "targetSymbol": "Operand::kind"
+            "targetSymbol": "Operand::value"
           }
         },
         {
@@ -45,7 +45,7 @@
                   "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
                 },
                 "region": {
-                  "startLine": 15,
+                  "startLine": 18,
                   "startColumn": 1
                 }
               },
@@ -65,30 +65,30 @@
         {
           "ruleId": "C26495",
           "message": {
-            "text": "未初始化变量 Operand::value。始终初始化成员变量(type.6)。"
+            "text": "未初始化变量 CodeGenerator::m_param_idx。始终初始化成员变量(type.6)。"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "file:///D:/Compiler/Compiler/src/ir.hpp"
+                  "uri": "file:///D:/Compiler/Compiler/src/CodeGenerator.hpp"
                 },
                 "region": {
-                  "startLine": 15,
+                  "startLine": 57,
                   "startColumn": 1
                 }
               },
               "logicalLocations": [
                 {
-                  "fullyQualifiedName": "Operand::{ctor}",
-                  "decoratedName": "??0Operand@@QEAA@XZ",
+                  "fullyQualifiedName": "CodeGenerator::{ctor}",
+                  "decoratedName": "??0CodeGenerator@@QEAA@XZ",
                   "kind": "function"
                 }
               ]
             }
           ],
           "properties": {
-            "targetSymbol": "Operand::value"
+            "targetSymbol": "CodeGenerator::m_param_idx"
           }
         }
       ],
@@ -114,7 +114,18 @@
             "resultFile"
           ],
           "hashes": {
-            "sha-256": "9cf657f193baf99c03024c3df68683b4ff7d435d349e777bbf4d9f6e15c8b125"
+            "sha-256": "a238070b4f6e5ecdbf3fcb829fdd3e2163a25de69caf75941fb27b2d5ac14300"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///D:/Compiler/Compiler/src/CodeGenerator.hpp"
+          },
+          "roles": [
+            "resultFile"
+          ],
+          "hashes": {
+            "sha-256": "ea03599b45353c23c6b4b5abed70cae910a958fcf920430adff354c6c2a8b042"
           }
         },
         {
@@ -125,7 +136,7 @@
             "analysisTarget"
           ],
           "hashes": {
-            "sha-256": "35af51c7e5d5c29b621a52f14c6f528791f24f480747df209e476af849608862"
+            "sha-256": "99bfdb6da4d80d7365f397060a8c491be2bcc232a294d5d0fcf21f2a8a59e3c6"
           }
         },
         {

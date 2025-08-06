@@ -7,6 +7,7 @@
 #include "ast.hpp"
 #include "SemanticAnalyzer.hpp"
 #include "IRGenerator.hpp"
+#include "CodeGenerator.hpp"    
 
 // --- 从外部文件链接的全局变量和函数 ---
 extern FILE* yyin;
@@ -146,6 +147,11 @@ int main(int argc, char** argv) {
 
         std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
         print_ir(ir_module);
+        CodeGenerator code_gen;
+        std::string assembly_code = code_gen.generate(ir_module);
+
+        // --- 【核心修改】将汇编代码输出到标准输出流 ---
+        std::cout << assembly_code;
 
     }
     else {
