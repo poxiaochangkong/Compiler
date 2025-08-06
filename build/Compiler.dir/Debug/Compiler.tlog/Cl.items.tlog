@@ -6,3 +6,4 @@ D:\Compiler\Compiler\src\SemanticAnalyzer.cpp;D:\Compiler\Compiler\build\Compile
 D:\Compiler\Compiler\src\IRGenerator.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\IRGenerator.obj
 D:\Compiler\Compiler\src\CodeGenerator.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\CodeGenerator.obj
 D:\Compiler\Compiler\src\Optimizer.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\Optimizer.obj
+D:\Compiler\Compiler\src\SpillEverythingAllocator.cpp;D:\Compiler\Compiler\build\Compiler.dir\Debug\SpillEverythingAllocator.obj

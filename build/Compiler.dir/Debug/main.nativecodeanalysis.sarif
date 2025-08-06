@@ -61,35 +61,6 @@
           "properties": {
             "targetSymbol": "Operand::id"
           }
-        },
-        {
-          "ruleId": "C26495",
-          "message": {
-            "text": "未初始化变量 CodeGenerator::m_param_idx。始终初始化成员变量(type.6)。"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "file:///D:/Compiler/Compiler/src/CodeGenerator.hpp"
-                },
-                "region": {
-                  "startLine": 57,
-                  "startColumn": 1
-                }
-              },
-              "logicalLocations": [
-                {
-                  "fullyQualifiedName": "CodeGenerator::{ctor}",
-                  "decoratedName": "??0CodeGenerator@@QEAA@XZ",
-                  "kind": "function"
-                }
-              ]
-            }
-          ],
-          "properties": {
-            "targetSymbol": "CodeGenerator::m_param_idx"
-          }
         }
       ],
       "tool": {
@@ -115,17 +86,6 @@
           ],
           "hashes": {
             "sha-256": "a238070b4f6e5ecdbf3fcb829fdd3e2163a25de69caf75941fb27b2d5ac14300"
-          }
-        },
-        {
-          "location": {
-            "uri": "file:///D:/Compiler/Compiler/src/CodeGenerator.hpp"
-          },
-          "roles": [
-            "resultFile"
-          ],
-          "hashes": {
-            "sha-256": "ea03599b45353c23c6b4b5abed70cae910a958fcf920430adff354c6c2a8b042"
           }
         },
         {
@@ -161,6 +121,22 @@
           },
           "hashes": {
             "sha-256": "573c65eb3a710fbf39263cf465e8609ddf61ad68bd4d8570266bd8eba50f3c75"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///d:/compiler/compiler/src/codegenerator.hpp"
+          },
+          "hashes": {
+            "sha-256": "f2159df0af60ce3637fe8422a7c3591cb803560eeb5bc0bb2f0cd5b17f3188fc"
+          }
+        },
+        {
+          "location": {
+            "uri": "file:///d:/compiler/compiler/src/registerallocator.hpp"
+          },
+          "hashes": {
+            "sha-256": "f0bd6cdab82a6d337bc438112d05271f35a7be44f91f85373e8ca2f2dede993a"
           }
         }
       ]

@@ -34,21 +34,4 @@
     </ADDITIONALINFO>
     <PATH></PATH>
   </DEFECT>
-  <DEFECT>
-    <SFA>
-      <FILEPATH>D:\Compiler\Compiler\src\</FILEPATH>
-      <FILENAME>CodeGenerator.hpp</FILENAME>
-      <LINE>57</LINE>
-      <COLUMN>0</COLUMN>
-    </SFA>
-    <DEFECTCODE>26495</DEFECTCODE>
-    <DESCRIPTION>未初始化变量 CodeGenerator::m_param_idx。始终初始化成员变量(type.6)。</DESCRIPTION>
-    <FUNCTION>CodeGenerator::{ctor}</FUNCTION>
-    <DECORATED>??0CodeGenerator@@QEAA@XZ</DECORATED>
-    <FUNCLINE>57</FUNCLINE>
-    <ADDITIONALINFO>
-      <targetSymbol>CodeGenerator::m_param_idx</targetSymbol>
-    </ADDITIONALINFO>
-    <PATH></PATH>
-  </DEFECT>
 </DEFECTS>

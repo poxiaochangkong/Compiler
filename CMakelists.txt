@@ -37,6 +37,7 @@ add_executable(Compiler
   src/IRGenerator.cpp
   src/CodeGenerator.cpp
   src/Optimizer.cpp
+  src/SpillEverythingAllocator.cpp
   src/ast.hpp
   src/lexer.l
   src/parser.y
@@ -45,6 +46,8 @@ add_executable(Compiler
   src/IRGenerator.hpp
   src/CodeGenerator.hpp
   src/Optimizer.hpp
+  src/RegisterAllocator.hpp
+  src/SpillEverythingAllocator.hpp
 )
 
 # 5) »√±‡“Î∆˜ƒ‹’“µΩ parser.tab.h

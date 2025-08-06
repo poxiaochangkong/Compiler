@@ -525,6 +525,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Compiler\Compiler\src\IRGenerator.cpp" />
     <ClCompile Include="D:\Compiler\Compiler\src\CodeGenerator.cpp" />
     <ClCompile Include="D:\Compiler\Compiler\src\Optimizer.cpp" />
+    <ClCompile Include="D:\Compiler\Compiler\src\SpillEverythingAllocator.cpp" />
     <ClInclude Include="D:\Compiler\Compiler\src\ast.hpp" />
     <None Include="D:\Compiler\Compiler\src\lexer.l">
     </None>
@@ -535,6 +536,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="D:\Compiler\Compiler\src\IRGenerator.hpp" />
     <ClInclude Include="D:\Compiler\Compiler\src\CodeGenerator.hpp" />
     <ClInclude Include="D:\Compiler\Compiler\src\Optimizer.hpp" />
+    <ClInclude Include="D:\Compiler\Compiler\src\RegisterAllocator.hpp" />
+    <ClInclude Include="D:\Compiler\Compiler\src\SpillEverythingAllocator.hpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
