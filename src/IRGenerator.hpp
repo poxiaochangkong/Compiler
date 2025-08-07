@@ -58,6 +58,15 @@ private:
     int temp_counter = 0;   // 临时变量的唯一 ID 计数器
     int label_counter = 0;  // 基本块标签的唯一 ID 计数器
 
+    // --- 新增：用于生成唯一变量名的符号表和计数器 ---
+    std::vector<std::map<std::string, Operand>> m_scopes;
+    int m_var_counter = 0;
+    // --- 新增：作用域管理的辅助函数 ---
+    void enter_scope();
+    void exit_scope();
+    Operand declare_variable(const std::string& name);
+    Operand lookup_variable(const std::string& name);
+
     Operand new_temp();      // 创建一个新的临时变量操作数
     Operand new_label_op();  // 创建一个新的标签操作数，用于跳转指令
     BasicBlock* create_block(const std::string& prefix = ".L"); // 创建一个新的、独立的基本块

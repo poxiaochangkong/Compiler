@@ -10,6 +10,47 @@ ModuleIR IRGenerator::generate(Program* root) {
     return m_module;
 }
 
+void IRGenerator::enter_scope() {
+    m_scopes.push_back({});
+}
+
+void IRGenerator::exit_scope() {
+    if (!m_scopes.empty()) {
+        m_scopes.pop_back();
+    }
+}
+
+// 为变量声明创建唯一的 IR 操作数
+Operand IRGenerator::declare_variable(const std::string& name) {
+    if (m_scopes.empty()) {
+        // 这是一个防御性检查，正常情况下函数定义会创建第一个作用域
+        enter_scope();
+    }
+
+    Operand op;
+    op.kind = Operand::VAR;
+    // 通过计数器为变量名添加后缀，使其唯一，例如 "x" -> "x_0"
+    op.name = name + "_" + std::to_string(m_var_counter++);
+
+    // 在当前作用域的 map 中，将原始名称映射到这个唯一的 Operand
+    m_scopes.back()[name] = op;
+
+    return op;
+}
+
+// 查找变量对应的唯一 IR 操作数
+Operand IRGenerator::lookup_variable(const std::string& name) {
+    // 从内层作用域向外层查找
+    for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
+        const auto& scope = *it;
+        if (scope.count(name)) {
+            return scope.at(name);
+        }
+    }
+    // 如果代码通过了语义分析，这里本不应该执行到
+    throw std::runtime_error("IRGen Error: Undeclared variable '" + name + "'.");
+}
+
 // --- 辅助函数实现 ---
 
 Operand IRGenerator::new_temp() {
@@ -73,6 +114,10 @@ void IRGenerator::visit(FuncDef* node) {
     current_func = &m_module.functions.back();
     current_func->name = node->name;
 
+    // 为每个新函数重置作用域和变量计数器
+    m_scopes.clear();
+    m_var_counter = 0;
+    enter_scope(); // 创建函数顶级作用域
     // --- 【核心修改】---
     // 遍历 AST 中的参数，并将信息复制到 FunctionIR 中
     for (auto* param_ast : node->params) {
@@ -97,19 +142,24 @@ void IRGenerator::visit(FuncDef* node) {
             current_block->instructions.push_back({ Instruction::RET });
         }
     }
+    exit_scope(); // 退出函数作用域
     current_func = nullptr;
 }
 
 void IRGenerator::visit(Param* node) {
-    // 在 IR 生成阶段，参数主要用于函数签名，
-    // 实际的参数传递在 visit(CallExpr*) 中处理。
-    // 这里可以什么都不做。
+    // 参数作为变量在函数的最外层作用域中声明
+    declare_variable(node->name);
+    // 注意：这里只负责为其分配唯一名称。
+    // CodeGenerator 阶段需要负责将传入的参数寄存器（如 a0, a1）的值
+    // 存入为该参数变量分配的栈空间中
 }
 
 void IRGenerator::visit(Block* node) {
+    enter_scope();
     for (auto* stmt : node->stmts) {
         if (stmt) stmt->accept(this);
     }
+    exit_scope();
 }
 
 void IRGenerator::visit(ExprStmt* node) {
@@ -119,31 +169,28 @@ void IRGenerator::visit(ExprStmt* node) {
 }
 
 void IRGenerator::visit(AssignStmt* node) {
-    // 1. 计算右侧表达式的值，结果在 m_result_op 中
+    // 1. 访问右侧表达式
     node->rhs->accept(this);
-    Operand src_op = m_result_op;
+    Operand rhs = m_result_op;
 
-    // 2. 创建代表左侧变量的操作数
-    Operand dest_op;
-    dest_op.kind = Operand::VAR;
-    dest_op.name = node->name;
+    // 2. 查找要赋值的变量的唯一操作数
+    Operand lhs = lookup_variable(node->name);
 
     // 3. 生成赋值指令
-    current_block->instructions.push_back({ Instruction::ASSIGN, dest_op, src_op });
+    current_block->instructions.push_back({ Instruction::ASSIGN, lhs, rhs });
 }
 
 void IRGenerator::visit(DeclStmt* node) {
-    // 变量声明，如果有初始化，就等同于一次赋值
-    if (node->init) {
-        node->init->accept(this);
-        Operand src_op = m_result_op;
+    // 根据 parser.y 的语法，node->init 总是非空
+   // 1. 访问初始化表达式，结果在 m_result_op
+    node->init->accept(this); // 使用 node->init 保持一致
+    Operand rhs = m_result_op;
 
-        Operand dest_op;
-        dest_op.kind = Operand::VAR;
-        dest_op.name = node->name;
+    // 2. 在当前作用域声明新变量，并获取其唯一操作数
+    Operand lhs = declare_variable(node->name);
 
-        current_block->instructions.push_back({ Instruction::ASSIGN, dest_op, src_op });
-    }
+    // 3. 生成赋值指令
+    current_block->instructions.push_back({ Instruction::ASSIGN, lhs, rhs });
 }
 
 void IRGenerator::visit(ReturnStmt* node) {
@@ -256,8 +303,8 @@ void IRGenerator::visit(IntLiteral* node) {
 }
 
 void IRGenerator::visit(VarExpr* node) {
-    m_result_op.kind = Operand::VAR;
-    m_result_op.name = node->name;
+    // 查找变量对应的唯一操作数，作为表达式的结果
+    m_result_op = lookup_variable(node->name);
 }
 
 void IRGenerator::visit(BinaryExpr* node) {
