@@ -1,6 +1,7 @@
 #include "IRGenerator.hpp"
 #include <stdexcept> // 用于 std::runtime_error
 #include <string>    // 用于 std::to_string
+#include <algorithm>
 
 ModuleIR IRGenerator::generate(Program* root) {
     if (root) {
