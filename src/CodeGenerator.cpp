@@ -112,7 +112,7 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
     case Instruction::JUMP_IF_NZERO: { // JUMP_IF_NZERO (不为0则跳转)
         m_output << m_allocator->loadOperand(instr.arg1, "t0");
         m_output << "  bnez t0, " << instr.arg2.name << "\n";
-        ;
+        break;
     case Instruction::JUMP:
         m_output << "  j " << instr.arg1.name << "\n";
         break;

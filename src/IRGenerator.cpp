@@ -176,6 +176,7 @@ void IRGenerator::visit(IfStmt* node) {
 
     // 如果为假，跳转的目标是 else 块（如果存在）或 merge 块（如果不存在）
     Operand false_dest_label;
+    false_dest_label.kind = Operand::LABEL;
     false_dest_label.name = else_block ? else_block->label : merge_block->label;
 
     // 2. 计算条件

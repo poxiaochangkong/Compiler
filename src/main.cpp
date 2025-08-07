@@ -128,29 +128,29 @@ int main(int argc, char** argv) {
         }
     }
 
-    // yydebug = 1;
-    // yy_flex_debug = 1;
+    /* yydebug = 1;
+     yy_flex_debug = 1;*/
 
     int parse_result = yyparse();
 
     if (parse_result == 0 && g_root != nullptr) {
-        //std::cout << "\nParsing successful! AST created." << std::endl;
+        std::cout << "\nParsing successful! AST created." << std::endl;
 
         SemanticAnalyzer analyzer;
         analyzer.analyze(g_root);
-        //std::cout << "Semantic analysis finished." << std::endl;
+        std::cout << "Semantic analysis finished." << std::endl;
 
-        //std::cout << "\n--- Starting IR Generation ---" << std::endl;
+        std::cout << "\n--- Starting IR Generation ---" << std::endl;
         IRGenerator ir_gen;
         ModuleIR ir_module = ir_gen.generate(g_root);
-        //std::cout << "--- IR Generation Finished ---" << std::endl;
+        std::cout << "--- IR Generation Finished ---" << std::endl;
 
-        //std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
-        //print_ir(ir_module);
+        std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
+        print_ir(ir_module);
         CodeGenerator code_gen;
         std::string assembly_code = code_gen.generate(ir_module);
 
-        // --- 【核心修改】将汇编代码输出到标准输出流 ---
+         //--- 【核心修改】将汇编代码输出到标准输出流 ---
         std::cout << assembly_code;
 
     }
