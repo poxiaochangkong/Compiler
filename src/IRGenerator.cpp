@@ -119,18 +119,19 @@ void IRGenerator::visit(FuncDef* node) {
     m_var_counter = 0;
     enter_scope(); // 创建函数顶级作用域
     // --- 【核心修改】---
-    // 遍历 AST 中的参数，并将信息复制到 FunctionIR 中
-    for (auto* param_ast : node->params) {
-        current_func->params.push_back({ param_ast->name, param_ast->type_val });
-    }
+    
 
     // 每个函数都有一个入口块
     BasicBlock* entry_block = create_block(".entry_");
     add_block(entry_block);
 
-    // 为函数参数生成对应的 IR 操作数（这个逻辑可以保持）
-    for (auto* param : node->params) {
-        param->accept(this);
+    for (auto* param_ast : node->params) {
+        // 1. 为参数创建唯一的 Operand (例如 a -> a_0)
+        Operand unique_param_op = declare_variable(param_ast->name);
+        //unique_param_op.type = param_ast->type_val; // 可选：如果 Operand 需要类型信息
+
+        // 2. 将这个【唯一的】Operand 添加到 FunctionIR 的参数列表中
+        current_func->params.push_back({ unique_param_op.name, });
     }
 
     node->body->accept(this);
@@ -147,11 +148,7 @@ void IRGenerator::visit(FuncDef* node) {
 }
 
 void IRGenerator::visit(Param* node) {
-    // 参数作为变量在函数的最外层作用域中声明
-    declare_variable(node->name);
-    // 注意：这里只负责为其分配唯一名称。
-    // CodeGenerator 阶段需要负责将传入的参数寄存器（如 a0, a1）的值
-    // 存入为该参数变量分配的栈空间中
+    // This logic is now handled in visit(FuncDef*)
 }
 
 void IRGenerator::visit(Block* node) {
