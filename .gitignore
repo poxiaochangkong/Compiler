@@ -3,3 +3,4 @@
 
 # 忽略 build 文件夹下的 .vs 文件夹
 /build/.vs/
+/build
