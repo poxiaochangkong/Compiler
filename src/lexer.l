@@ -8,6 +8,8 @@
     #define isatty _isatty
     #define fileno _fileno
     #define strdup _strdup
+  #else
+    #include <unistd.h>
   #endif
 
   /* 引入 Bison 生成的头，内含 union YYSTYPE 和 extern YYSTYPE yylval */

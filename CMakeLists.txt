@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Compiler)
 
 # 使用 C++11
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 # 找到 Flex 和 Bison
 find_package(FLEX REQUIRED)
