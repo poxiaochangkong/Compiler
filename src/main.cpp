@@ -3,11 +3,13 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <cstring>
 
 #include "ast.hpp"
 #include "SemanticAnalyzer.hpp"
 #include "IRGenerator.hpp"
 #include "CodeGenerator.hpp"    
+#include "Optimizer.hpp"
 
 // --- 从外部文件链接的全局变量和函数 ---
 extern FILE* yyin;
@@ -120,13 +122,40 @@ void print_ir(const ModuleIR& module) {
 }
 
 int main(int argc, char** argv) {
-    if (argc > 1) {
-        yyin = fopen(argv[1], "r");
-        if (!yyin) {
-            perror("Error opening file");
-            return 1;
+    const char* input_filename = nullptr;
+    // 遍历所有参数，跳过 "-opt"，找到输入文件名
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "-opt") != 0) {
+            // 如果当前参数不是 "-opt"，我们就认为它是输入文件名
+            if (input_filename == nullptr) {
+                input_filename = argv[i];
+            }
+            else {
+                // 如果已经找到过一个文件名，说明有多余的参数
+                std::cerr << "Error: More than one input file specified." << std::endl;
+                return 1;
+            }
         }
+        // 如果当前参数是 "-opt"，则循环继续，自然地将其“吞掉”
     }
+
+    //根据解析结果设置输入流
+        if (input_filename != nullptr) {
+            yyin = fopen(input_filename, "r");
+            if (!yyin) {
+                perror("Error opening file");
+                return 1;
+            }
+        }
+        else {
+            // 如果命令行中除了 "-opt" (或什么都没有) 外，没有提供输入文件
+            if (argc > 1) { // 如果提供了参数但没找到文件名
+                std::cerr << "Error: No input file specified." << std::endl;
+                std::cerr << "Usage: Compiler [-opt] <input_file>" << std::endl;
+                return 1;
+            }
+            // 如果未提供任何参数 (argc <= 1)，程序将默认从标准输入读取，行为和原来一致
+        }
 
     /* yydebug = 1;
      yy_flex_debug = 1;*/
