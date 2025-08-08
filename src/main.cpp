@@ -152,6 +152,9 @@ int main(int argc, char** argv) {
             if (argc > 1) { // 如果提供了参数但没找到文件名
                 std::cerr << "Error: No input file specified." << std::endl;
                 std::cerr << "Usage: Compiler [-opt] <input_file>" << std::endl;
+                for (int i = 0; i < argc; ++i) {
+                    std::cerr << "argv[" << i << "]: " << argv[i] << std::endl;
+                }
                 return 1;
             }
             // 如果未提供任何参数 (argc <= 1)，程序将默认从标准输入读取，行为和原来一致
