@@ -392,9 +392,10 @@ void IRGenerator::visit(CallExpr* node) {
         args_ops.push_back(m_result_op);
     }
 
-    // 2. 按照 C 语言的调用约定 (cdecl)，参数从右到左入栈。
-    //    因此我们反向遍历参数，为每个参数生成一条 PARAM 指令。
-    std::reverse(args_ops.begin(), args_ops.end());
+    //// 2. 按照 C 语言的调用约定 (cdecl)，参数从右到左入栈。
+    ////    因此我们反向遍历参数，为每个参数生成一条 PARAM 指令。
+    // RISC-V32约定从左至右。注释掉
+    //std::reverse(args_ops.begin(), args_ops.end());
     for (const auto& arg_op : args_ops) {
         current_block->instructions.push_back({ Instruction::PARAM, {}, arg_op });
     }
