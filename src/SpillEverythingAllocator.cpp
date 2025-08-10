@@ -35,13 +35,33 @@ void SpillEverythingAllocator::prepare(const FunctionIR& func) {
     };
 
     for (const auto& param : func.params) allocate_if_needed({ Operand::VAR, param.name });
+    // --- 新增代码：计算最大出参空间 ---
+    int max_outgoing_stack_args = 0;
+    int current_call_params = 0;
     for (const auto& bb : func.blocks) {
         for (const auto& instr : bb.instructions) {
+            if (instr.opcode == Instruction::PARAM) {
+                current_call_params++;
+            }
+            else if (instr.opcode == Instruction::CALL) {
+                if (current_call_params > 8) {
+                    int stack_args = current_call_params - 8;
+                    if (stack_args > max_outgoing_stack_args) {
+                        max_outgoing_stack_args = stack_args;
+                    }
+                }
+                current_call_params = 0; // 为下一次调用重置计数器
+            }
+            // --- 别忘了继续为指令结果和参数分配空间 ---
             allocate_if_needed(instr.result);
             allocate_if_needed(instr.arg1);
             allocate_if_needed(instr.arg2);
         }
     }
+    // --- 新增代码结束 ---
+
+    // 将出参空间也加入总栈大小计算
+    current_offset -= max_outgoing_stack_args * 4;
 
     m_total_stack_size = -current_offset;
     // 16字节对齐
@@ -53,7 +73,20 @@ void SpillEverythingAllocator::prepare(const FunctionIR& func) {
     for (size_t i = 0; i < func.params.size(); ++i) {
         std::string key = operandToKey({ Operand::VAR, func.params[i].name });
         if (m_stack_offsets.count(key)) {
-            ss << "  sw a" << i << ", " << offsetToString(m_stack_offsets[key]) << "\n";
+            if (i < 8) {
+                // 前8个参数来自 a0-a7 寄存器，将它们存入当前函数的栈帧
+                ss << "  sw a" << i << ", " << offsetToString(m_stack_offsets[key]) << "\n";
+            }
+            else {
+                // 后续参数从调用者的栈帧中加载
+                // 函数序言执行后，fp 指向调用前的 sp
+                // 所以第9个参数在 0(fp)，第10个在 4(fp)，以此类推
+                int caller_stack_offset = (i - 8) * 4;
+                // 1. 从调用者栈帧加载参数到 t0
+                ss << "  lw t0, " << caller_stack_offset << "(fp)\n";
+                // 2. 将 t0 的值存入当前函数为该参数分配的栈槽中
+                ss << "  sw t0, " << offsetToString(m_stack_offsets[key]) << "\n";
+            }
         }
     }
     m_param_init_code = ss.str();
