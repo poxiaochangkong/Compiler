@@ -129,8 +129,17 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
         break;
     }
     case Instruction::PARAM:
-        // loadOperand 内部会处理加载逻辑
-        m_output << m_allocator->loadOperand(instr.arg1, "a" + std::to_string(m_param_idx));
+        if (m_param_idx < 8) {
+            // 前8个参数通过寄存器 a0-a7 传递
+            m_output << m_allocator->loadOperand(instr.arg1, "a" + std::to_string(m_param_idx));
+        }
+        else {
+            // 后续参数通过栈传递
+            // 1. 将参数值加载到临时寄存器 t0
+            m_output << m_allocator->loadOperand(instr.arg1, "t0");
+            // 2. 将 t0 的值存入栈中，偏移量根据参数序号计算
+            m_output << "  sw t0, " << (m_param_idx - 8) * 4 << "(sp)\n";
+        }
         m_param_idx++;
         break;
     case Instruction::CALL:
