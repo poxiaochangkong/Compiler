@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <sstream>
 
 // --- 辅助函数 ---
 
@@ -17,27 +18,28 @@ static std::string get_operand_id(const Operand& op) {
     return "";
 }
 
-// 为一个表达式生成唯一的字符串表示，用于在 map 中查找
+// 为一个表达式生成唯一的字符串表示
 static std::string get_expr_id(const Instruction& instr) {
-    if (instr.arg2.kind == Operand::NONE) { // Unary expression
-        return std::to_string(instr.opcode) + get_operand_id(instr.arg1);
+    std::stringstream ss;
+    ss << instr.opcode;
+    if (is_variable_or_temp(instr.arg1)) ss << " " << get_operand_id(instr.arg1);
+    else if (instr.arg1.kind == Operand::CONST) ss << " " << instr.arg1.value;
+
+    if (instr.arg2.kind != Operand::NONE) {
+        if (is_variable_or_temp(instr.arg2)) ss << " " << get_operand_id(instr.arg2);
+        else if (instr.arg2.kind == Operand::CONST) ss << " " << instr.arg2.value;
     }
-    else { // Binary expression
-        return std::to_string(instr.opcode) + get_operand_id(instr.arg1) + "," + get_operand_id(instr.arg2);
-    }
+    return ss.str();
 }
 
 
 // --- 主协调函数 ---
 
 void Optimizer::optimize(ModuleIR& module) {
-    // 步骤 1: 常量折叠。
     run_constant_folding(module);
 
-    // 步骤 2: 迭代进行其他优化，直到代码不再变化。
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
-        // 优化顺序很重要：CSE -> CP -> DCE
         bool cse_changed = run_common_subexpression_elimination(module);
         bool cp_changed = run_copy_propagation(module);
         bool dce_changed = run_dead_code_elimination(module);
@@ -90,16 +92,15 @@ void Optimizer::run_constant_folding(ModuleIR& module) {
     }
 }
 
-// --- 优化阶段二: 公共子表达式消除 (局部) ---
+// --- 优化阶段二: 公共子表达式消除 (修复版) ---
 
 bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
     bool changed_this_pass = false;
     for (auto& func : module.functions) {
         for (auto& block : func.blocks) {
-            // available_exprs 存储了当前基本块内可用的表达式及其结果
-            // Key: 表达式的字符串表示 (e.g., "ADD t1,t2")
-            // Value: 存储该表达式结果的操作数 (e.g., t3)
             std::unordered_map<std::string, Operand> available_exprs;
+            // 存储每个表达式的操作数，用于精确的失效判断
+            std::unordered_map<std::string, std::pair<std::string, std::string>> expr_operands;
 
             for (auto& instr : block.instructions) {
                 // 只处理纯计算指令
@@ -108,30 +109,34 @@ bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
                     auto it = available_exprs.find(expr_id);
 
                     if (it != available_exprs.end()) {
-                        // 找到了公共子表达式！
-                        // 将当前指令替换为一条赋值指令
                         instr.opcode = Instruction::ASSIGN;
-                        instr.arg1 = it->second; // 源操作数是之前计算的结果
+                        instr.arg1 = it->second;
                         instr.arg2.kind = Operand::NONE;
                         changed_this_pass = true;
                     }
                     else {
-                        // 这是一个新的表达式，将它和它的结果存入表中
                         available_exprs[expr_id] = instr.result;
+                        // 记录该表达式的两个操作数ID
+                        expr_operands[expr_id] = { get_operand_id(instr.arg1), get_operand_id(instr.arg2) };
                     }
                 }
 
-                // 如果指令修改了一个变量，需要使所有用到这个变量的旧表达式失效
+                // ---【核心修复】---
+                // 如果指令修改了一个变量，需要精确地使所有用到这个变量的旧表达式失效
                 if (is_variable_or_temp(instr.result)) {
                     std::string result_id = get_operand_id(instr.result);
                     for (auto it = available_exprs.begin(); it != available_exprs.end(); ) {
-                        // 检查表达式的字符串表示中是否包含被修改的变量
-                        if (it->first.find(result_id) != std::string::npos) {
-                            it = available_exprs.erase(it);
+                        auto operands_it = expr_operands.find(it->first);
+                        if (operands_it != expr_operands.end()) {
+                            // 精确判断：被修改的变量是否是表达式的操作数之一
+                            if (operands_it->second.first == result_id || operands_it->second.second == result_id) {
+                                // 是，则该表达式失效
+                                expr_operands.erase(operands_it);
+                                it = available_exprs.erase(it);
+                                continue;
+                            }
                         }
-                        else {
-                            ++it;
-                        }
+                        ++it;
                     }
                 }
             }
