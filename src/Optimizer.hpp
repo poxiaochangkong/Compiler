@@ -24,6 +24,7 @@ private:
      * @param module IR模块。
      */
     void run_constant_folding(ModuleIR& module);
+    bool run_common_subexpression_elimination(ModuleIR& module);
 
     /**
      * @brief 执行复写传播优化。
