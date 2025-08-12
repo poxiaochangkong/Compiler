@@ -81,24 +81,17 @@ void Optimizer::run_constant_folding(ModuleIR& module) {
     }
 }
 
-// --- 优化阶段二: 复写传播 ---
+// --- 优化阶段二: 复写传播 (局部，更安全) ---
 
 bool Optimizer::run_copy_propagation(ModuleIR& module) {
     bool changed_this_pass = false;
     for (auto& func : module.functions) {
-        std::unordered_map<std::string, Operand> copy_map;
-        for (const auto& block : func.blocks) {
-            for (const auto& instr : block.instructions) {
-                if (instr.opcode == Instruction::ASSIGN && is_variable_or_temp(instr.result) && is_variable_or_temp(instr.arg1)) {
-                    copy_map[get_operand_id(instr.result)] = instr.arg1;
-                }
-            }
-        }
-
-        if (copy_map.empty()) continue;
-
         for (auto& block : func.blocks) {
+            // copy_map 只在单个基本块内有效
+            std::unordered_map<std::string, Operand> copy_map;
+
             for (auto& instr : block.instructions) {
+                // 1. 应用当前已知的复写关系
                 if (is_variable_or_temp(instr.arg1)) {
                     auto it = copy_map.find(get_operand_id(instr.arg1));
                     if (it != copy_map.end()) {
@@ -111,6 +104,34 @@ bool Optimizer::run_copy_propagation(ModuleIR& module) {
                     if (it != copy_map.end()) {
                         instr.arg2 = it->second;
                         changed_this_pass = true;
+                    }
+                }
+
+                // 2. 使相关的复写关系失效
+                // 如果当前指令修改了一个变量，那么任何以它为目标或源的复写都失效了
+                if (is_variable_or_temp(instr.result)) {
+                    std::string result_id = get_operand_id(instr.result);
+                    // a. 如果 result 是某个复写的 key，删除该条目
+                    copy_map.erase(result_id);
+                    // b. 如果 result 是某个复写的 value，也删除该条目
+                    for (auto it = copy_map.begin(); it != copy_map.end(); ) {
+                        if (get_operand_id(it->second) == result_id) {
+                            it = copy_map.erase(it);
+                        }
+                        else {
+                            ++it;
+                        }
+                    }
+                }
+
+                // 3. 生成新的复写关系
+                if (instr.opcode == Instruction::ASSIGN &&
+                    is_variable_or_temp(instr.result) &&
+                    is_variable_or_temp(instr.arg1))
+                {
+                    // 只有当源和目标不同时，才是有意义的复写
+                    if (get_operand_id(instr.result) != get_operand_id(instr.arg1)) {
+                        copy_map[get_operand_id(instr.result)] = instr.arg1;
                     }
                 }
             }
