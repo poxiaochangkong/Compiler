@@ -7,7 +7,8 @@
 #include "ast.hpp"
 #include "SemanticAnalyzer.hpp"
 #include "IRGenerator.hpp"
-#include "CodeGenerator.hpp"    
+#include "CodeGenerator.hpp" 
+#include "Optimizer.hpp"
 
 // --- 从外部文件链接的全局变量和函数 ---
 extern FILE* yyin;
@@ -144,6 +145,10 @@ int main(int argc, char** argv) {
         IRGenerator ir_gen;
         ModuleIR ir_module = ir_gen.generate(g_root);
         std::cout << "--- IR Generation Finished ---" << std::endl;
+        std::cout << "--- Starting Optimization ---" << std::endl;
+        Optimizer optimizer;
+        optimizer.optimize(ir_module);
+        std::cout << "--- Optimization Finished ---\n" << std::endl;
 
         std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
         print_ir(ir_module);
