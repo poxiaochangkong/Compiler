@@ -17,6 +17,11 @@ private:
     void generate_function(const FunctionIR& func);
     void generate_instruction(const Instruction& instr);
 
+    // 【新增】为指令计算提供固定的临时寄存器
+    const std::string R_ARG1 = "t0";
+    const std::string R_ARG2 = "t1";
+    const std::string R_RES = "t2";
+
     std::stringstream m_output;
     int m_param_idx;
 

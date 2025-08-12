@@ -1,25 +1,23 @@
 #include "CodeGenerator.hpp"
-#include "SpillEverythingAllocator.hpp" // 包含具体实现
+#include "SpillEverythingAllocator.hpp" // 默认包含，用于测试
+#include "LinearScanAllocator.hpp"
 #include <iostream>
 #include <stdexcept>
-#include "LinearScanAllocator.hpp"
+#include <map>
 
 // 在构造函数中选择策略
 CodeGenerator::CodeGenerator() {
-    // 未来想换策略时，只需修改这一行！
-    // m_allocator = std::make_unique<SpillEverythingAllocator>();
+    // 【重要】我们先用 SpillEverythingAllocator 来验证重构的正确性
+    //m_allocator = std::make_unique<SpillEverythingAllocator>();
+    // 当验证通过后，只需取消下面的注释即可切换到线性扫描
     m_allocator = std::make_unique<LinearScanAllocator>();
 }
 
-// generate_function 现在只负责流程控制
+// generate_function 现在只负责流程控制 (无改动)
 void CodeGenerator::generate_function(const FunctionIR& func) {
-    // 1. 准备阶段
     m_allocator->prepare(func);
-
-    // 2. 生成序言
     m_output << m_allocator->getPrologue();
 
-    // 3. 逐条生成指令
     for (const auto& bb : func.blocks) {
         if (!bb.label.empty()) {
             m_output << bb.label << ":\n";
@@ -28,130 +26,141 @@ void CodeGenerator::generate_function(const FunctionIR& func) {
             generate_instruction(instr);
         }
     }
+    // 【修复】确保每个函数末尾都有一个换行，以防 epilogue 紧跟在标签后面
+    m_output << "\n";
+    m_output << m_allocator->getEpilogue();
 }
 
-// generate_instruction 现在调用 m_allocator 来处理访存
+// 【核心重构】generate_instruction 严格遵循 Load-Compute-Store 模式
 void CodeGenerator::generate_instruction(const Instruction& instr) {
+    // 映射 OpCode 到汇编指令
+    static const std::map<Instruction::OpCode, std::string> op_to_asm = {
+        {Instruction::ADD, "add"}, {Instruction::SUB, "sub"}, {Instruction::MUL, "mul"},
+        {Instruction::DIV, "div"}, {Instruction::MOD, "rem"},
+        {Instruction::EQ, "seqz"}, // Special: result is `rd = (rs1 == 0)`
+        {Instruction::NEQ, "snez"},// Special: result is `rd = (rs1 != 0)`
+        {Instruction::LT, "slt"}, {Instruction::GT, "sgt"},
+        {Instruction::LE, "sle"},  // Pseudo-instruction
+        {Instruction::GE, "sge"}   // Pseudo-instruction
+    };
+
     switch (instr.opcode) {
-    case Instruction::ADD: case Instruction::SUB: case Instruction::MUL: case Instruction::DIV: case Instruction::MOD: {
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        std::string op_str;
-        if (instr.opcode == Instruction::ADD) op_str = "add";
-        if (instr.opcode == Instruction::SUB) op_str = "sub";
-        if (instr.opcode == Instruction::MUL) op_str = "mul";
-        if (instr.opcode == Instruction::DIV) op_str = "div";
-        if (instr.opcode == Instruction::MOD) op_str = "rem";
-        m_output << "  " << op_str << " t2, t0, t1\n";
-        m_output << m_allocator->storeOperand(instr.result, "t2");
+        // --- 二元算术/关系运算 ---
+    case Instruction::ADD:
+    case Instruction::SUB:
+    case Instruction::MUL:
+    case Instruction::DIV:
+    case Instruction::MOD:
+    case Instruction::LT:
+    case Instruction::GT: {
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << m_allocator->loadOperand(instr.arg2, R_ARG2);
+        m_output << "  " << op_to_asm.at(instr.opcode) << " " << R_RES << ", " << R_ARG1 << ", " << R_ARG2 << "\n";
+        m_output << m_allocator->storeOperand(instr.result, R_RES);
         break;
     }
-    case Instruction::NOT: { // 逻辑非
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << "  seqz t0, t0\n"; // 如果 t0 为 0，则 t0=1；否则 t0=0
-        m_output << m_allocator->storeOperand(instr.result, "t0");
+                        // LE 和 GE 是伪指令，需要转换
+    case Instruction::LE: { // a <= b  <=> !(b < a)
+        m_output << m_allocator->loadOperand(instr.arg2, R_ARG1); // b
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG2); // a
+        m_output << "  slt " << R_RES << ", " << R_ARG1 << ", " << R_ARG2 << "\n"; // R_RES = (b < a)
+        m_output << "  xori " << R_RES << ", " << R_RES << ", 1\n"; // R_RES = !(b < a)
+        m_output << m_allocator->storeOperand(instr.result, R_RES);
         break;
     }
-
-    case Instruction::EQ: { // 等于 ==
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  sub t2, t0, t1\n";
-        m_output << "  seqz t2, t2\n"; // 如果 t2 (差值) 为 0，则 t2=1
-        m_output << m_allocator->storeOperand(instr.result, "t2");
+    case Instruction::GE: { // a >= b <=> !(a < b)
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1); // a
+        m_output << m_allocator->loadOperand(instr.arg2, R_ARG2); // b
+        m_output << "  slt " << R_RES << ", " << R_ARG1 << ", " << R_ARG2 << "\n"; // R_RES = (a < b)
+        m_output << "  xori " << R_RES << ", " << R_RES << ", 1\n"; // R_RES = !(a < b)
+        m_output << m_allocator->storeOperand(instr.result, R_RES);
         break;
     }
-
-    case Instruction::NEQ: { // 不等于 !=
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  sub t2, t0, t1\n";
-        m_output << "  snez t2, t2\n"; // 如果 t2 (差值) 不为 0，则 t2=1
-        m_output << m_allocator->storeOperand(instr.result, "t2");
+                        // EQ 和 NEQ 的特殊处理
+    case Instruction::EQ: { // a == b <=> (a - b) == 0
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << m_allocator->loadOperand(instr.arg2, R_ARG2);
+        m_output << "  sub " << R_RES << ", " << R_ARG1 << ", " << R_ARG2 << "\n";
+        m_output << "  seqz " << R_RES << ", " << R_RES << "\n";
+        m_output << m_allocator->storeOperand(instr.result, R_RES);
         break;
     }
-
-    case Instruction::LT: { // 小于 <
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  slt t2, t0, t1\n"; // 如果 t0 < t1，则 t2=1
-        m_output << m_allocator->storeOperand(instr.result, "t2");
-        break;
-    }
-
-    case Instruction::GT: { // 大于 >
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  sgt t2, t0, t1\n"; // 如果 t0 > t1，则 t2=1 (sgt是伪指令，等价于 slt t2, t1, t0)
-        m_output << m_allocator->storeOperand(instr.result, "t2");
+    case Instruction::NEQ: { // a != b <=> (a - b) != 0
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << m_allocator->loadOperand(instr.arg2, R_ARG2);
+        m_output << "  sub " << R_RES << ", " << R_ARG1 << ", " << R_ARG2 << "\n";
+        m_output << "  snez " << R_RES << ", " << R_RES << "\n";
+        m_output << m_allocator->storeOperand(instr.result, R_RES);
         break;
     }
 
-    case Instruction::LE: { // 小于等于 <= (已有)
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  sgt t2, t0, t1\n"; // t2 = (t0 > t1)
-        m_output << "  xori t2, t2, 1\n"; // t2 = !t2
-        m_output << m_allocator->storeOperand(instr.result, "t2");
+                         // --- 一元运算 ---
+    case Instruction::NOT: { // !a <=> a == 0
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << "  seqz " << R_RES << ", " << R_ARG1 << "\n";
+        m_output << m_allocator->storeOperand(instr.result, R_RES);
         break;
     }
 
-    case Instruction::GE: { // 大于等于 >=
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->loadOperand(instr.arg2, "t1");
-        m_output << "  slt t2, t0, t1\n"; // t2 = (t0 < t1)
-        m_output << "  xori t2, t2, 1\n"; // t2 = !t2
-        m_output << m_allocator->storeOperand(instr.result, "t2");
+                         // --- 赋值 ---
+    case Instruction::ASSIGN: {
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << m_allocator->storeOperand(instr.result, R_ARG1);
         break;
     }
 
-    case Instruction::JUMP_IF_ZERO: {
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << "  beqz t0, " << instr.arg2.name << "\n";
-        break;
-    }
-
-    case Instruction::JUMP_IF_NZERO: { // JUMP_IF_NZERO (不为0则跳转)
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << "  bnez t0, " << instr.arg2.name << "\n";
-        break;
-    case Instruction::JUMP:
-        m_output << "  j " << instr.arg1.name << "\n";
-        break;
-    case Instruction::ASSIGN:
-        m_output << m_allocator->loadOperand(instr.arg1, "t0");
-        m_output << m_allocator->storeOperand(instr.result, "t0");
-        break;
-    case Instruction::RET: {
-        if (instr.arg1.kind != Operand::NONE) {
-            m_output << m_allocator->loadOperand(instr.arg1, "a0");
-        }
-        // 直接获取尾声代码
-        m_output << m_allocator->getEpilogue();
-        break;
-    }
-    case Instruction::PARAM:
+                            // --- 函数调用与返回 ---
+    case Instruction::PARAM: {
+        // RISC-V 前8个参数通过 a0-a7 传递
         if (m_param_idx < 8) {
-            // 前8个参数通过寄存器 a0-a7 传递
-            m_output << m_allocator->loadOperand(instr.arg1, "a" + std::to_string(m_param_idx));
+            std::string reg_name = "a" + std::to_string(m_param_idx);
+            m_output << m_allocator->loadOperand(instr.arg1, reg_name);
         }
         else {
-            // 后续参数通过栈传递
-            // 1. 将参数值加载到临时寄存器 t0
-            m_output << m_allocator->loadOperand(instr.arg1, "t0");
-            // 2. 将 t0 的值存入栈中，偏移量根据参数序号计算
-            m_output << "  sw t0, " << (m_param_idx - 8) * 4 << "(sp)\n";
+            // 超出8个的参数通过栈传递
+            m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+            m_output << "  sw " << R_ARG1 << ", " << (m_param_idx - 8) * 4 << "(sp)\n";
         }
         m_param_idx++;
         break;
-    case Instruction::CALL:
+    }
+    case Instruction::CALL: {
+        // 在调用前，需要保存所有调用者保存寄存器
+        // 这一步由 LinearScanAllocator 的分裂区间逻辑隐式完成
+        // SpillEverythingAllocator 则天然不需要，因为所有东西都在栈里
         m_param_idx = 0; // 重置参数计数器
         m_output << "  call " << instr.arg1.name << "\n";
         if (instr.result.kind != Operand::NONE) {
-            // 将返回值 a0 存到结果变量的位置
+            // 返回值在 a0，将其存到结果变量的位置
             m_output << m_allocator->storeOperand(instr.result, "a0");
         }
         break;
+    }
+    case Instruction::RET: {
+        if (instr.arg1.kind != Operand::NONE) {
+            // 将返回值加载到 a0
+            m_output << m_allocator->loadOperand(instr.arg1, "a0");
+        }
+        // 跳转到函数末尾的 epilogue
+        m_output << "  j " << m_allocator->getEpilogueLabel() << "\n";
+        break;
+    }
+
+                         // --- 分支与标签 ---
+    case Instruction::JUMP: {
+        m_output << "  j " << instr.arg1.name << "\n";
+        break;
+    }
+    case Instruction::JUMP_IF_ZERO: {
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << "  beqz " << R_ARG1 << ", " << instr.arg2.name << "\n";
+        break;
+    }
+    case Instruction::JUMP_IF_NZERO: {
+        m_output << m_allocator->loadOperand(instr.arg1, R_ARG1);
+        m_output << "  bnez " << R_ARG1 << ", " << instr.arg2.name << "\n";
+        break;
+    }
     case Instruction::LABEL:
         // Label 不生成代码，由 generate_function 处理
         break;
@@ -159,16 +168,15 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
         m_output << "  # Unhandled OpCode: " << instr.opcode << "\n";
         break;
     }
-    }
 }
 
-//主入口函数，确保 main 函数最先生成
+
+//主入口函数，确保 main 函数最先生成 (无改动)
 std::string CodeGenerator::generate(const ModuleIR& module) {
     m_output.str("");
     m_output.clear();
     m_output << ".text\n.globl main\n\n";
 
-    // 1. 查找并优先生成 main 函数
     const FunctionIR* main_func = nullptr;
     for (const auto& func : module.functions) {
         if (func.name == "main") {
@@ -178,19 +186,14 @@ std::string CodeGenerator::generate(const ModuleIR& module) {
     }
 
     if (main_func) {
-        m_param_idx = 0; // 为 main 函数重置参数计数器
+        m_param_idx = 0;
         generate_function(*main_func);
         m_output << "\n";
     }
-    else {
-        // 对于一个独立的可执行程序来说，没有 main 函数是致命错误
-        throw std::runtime_error("CodeGenerator Error: 'main' function not found in module.");
-    }
 
-    // 2. 生成其他所有非 main 函数
     for (const auto& func : module.functions) {
         if (func.name != "main") {
-            m_param_idx = 0; // 每个函数开始前重置参数计数器
+            m_param_idx = 0;
             generate_function(func);
             m_output << "\n";
         }

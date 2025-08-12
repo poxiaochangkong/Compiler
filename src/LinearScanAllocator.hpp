@@ -32,7 +32,8 @@ public:
     std::string getEpilogue()  override;
     std::string loadOperand(const Operand& op, const std::string& dest_reg) override;
     std::string storeOperand(const Operand& op, const std::string& src_reg) override;
-    int getTotalStackSize() const override; // <-- 【核心修复】添加缺失的函数声明
+    int getTotalStackSize() const override; 
+    std::string getEpilogueLabel() const override;
 
 private:
     // --- 算法核心步骤 ---
@@ -44,6 +45,8 @@ private:
     std::map<std::string, LiveInterval> m_intervals;
     std::vector<std::string> m_physical_regs;
     int m_stack_size_for_spills;
+    // --- 【新增】用于存储参数初始化代码 ---
+    std::string m_param_init_code;
 
     // --- 分配结果 ---
     std::map<std::string, std::string> m_reg_map;
