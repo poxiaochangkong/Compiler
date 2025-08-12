@@ -2,11 +2,13 @@
 #include "SpillEverythingAllocator.hpp" // 包含具体实现
 #include <iostream>
 #include <stdexcept>
+#include "LinearScanAllocator.hpp"
 
 // 在构造函数中选择策略
 CodeGenerator::CodeGenerator() {
     // 未来想换策略时，只需修改这一行！
-    m_allocator = std::make_unique<SpillEverythingAllocator>();
+    // m_allocator = std::make_unique<SpillEverythingAllocator>();
+    m_allocator = std::make_unique<LinearScanAllocator>();
 }
 
 // generate_function 现在只负责流程控制
