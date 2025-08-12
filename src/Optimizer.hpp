@@ -19,25 +19,10 @@ public:
 private:
     // --- 各个优化阶段的私有实现 ---
 
-    /**
-     * @brief 执行常量折叠优化。
-     * @param module IR模块。
-     */
     void run_constant_folding(ModuleIR& module);
+    bool run_algebraic_simplification(ModuleIR& module); // <-- 新增
     bool run_common_subexpression_elimination(ModuleIR& module);
-
-    /**
-     * @brief 执行复写传播优化。
-     * @param module IR模块。
-     * @return 如果本次传播有任何代码被修改，则返回 true。
-     */
     bool run_copy_propagation(ModuleIR& module);
-
-    /**
-     * @brief 执行死代码消除优化。
-     * @param module IR模块。
-     * @return 如果本次消除有任何代码被移除，则返回 true。
-     */
     bool run_dead_code_elimination(ModuleIR& module);
 };
 

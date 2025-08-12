@@ -18,7 +18,6 @@ static std::string get_operand_id(const Operand& op) {
     return "";
 }
 
-// 为一个表达式生成唯一的字符串表示
 static std::string get_expr_id(const Instruction& instr) {
     std::stringstream ss;
     ss << instr.opcode;
@@ -40,11 +39,12 @@ void Optimizer::optimize(ModuleIR& module) {
 
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
+        bool alg_changed = run_algebraic_simplification(module);
         bool cse_changed = run_common_subexpression_elimination(module);
         bool cp_changed = run_copy_propagation(module);
         bool dce_changed = run_dead_code_elimination(module);
 
-        changed_in_cycle = cse_changed || cp_changed || dce_changed;
+        changed_in_cycle = alg_changed || cse_changed || cp_changed || dce_changed;
     }
 }
 
@@ -92,18 +92,66 @@ void Optimizer::run_constant_folding(ModuleIR& module) {
     }
 }
 
-// --- 优化阶段二: 公共子表达式消除 (修复版) ---
+// --- 优化阶段二: 代数化简 ---
+
+bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
+    bool changed_this_pass = false;
+    for (auto& func : module.functions) {
+        for (auto& block : func.blocks) {
+            for (auto& instr : block.instructions) {
+                // 规则: x = y - y  =>  x = 0
+                if (instr.opcode == Instruction::SUB && get_operand_id(instr.arg1) == get_operand_id(instr.arg2) && is_variable_or_temp(instr.arg1)) {
+                    instr.opcode = Instruction::ASSIGN;
+                    instr.arg1.kind = Operand::CONST;
+                    instr.arg1.value = 0;
+                    instr.arg2.kind = Operand::NONE;
+                    changed_this_pass = true;
+                    continue;
+                }
+
+                // 处理第二个操作数是常量的情况
+                if (instr.arg2.kind == Operand::CONST) {
+                    int val = instr.arg2.value;
+                    // 规则: x = y + 0  =>  x = y
+                    // 规则: x = y - 0  =>  x = y
+                    if ((instr.opcode == Instruction::ADD || instr.opcode == Instruction::SUB) && val == 0) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg2.kind = Operand::NONE;
+                        changed_this_pass = true;
+                    }
+                    // 规则: x = y * 1  =>  x = y
+                    // 规则: x = y / 1  =>  x = y
+                    else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val == 1) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg2.kind = Operand::NONE;
+                        changed_this_pass = true;
+                    }
+                    // 规则: x = y * 0  =>  x = 0
+                    else if (instr.opcode == Instruction::MUL && val == 0) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1.kind = Operand::CONST;
+                        instr.arg1.value = 0;
+                        instr.arg2.kind = Operand::NONE;
+                        changed_this_pass = true;
+                    }
+                }
+            }
+        }
+    }
+    return changed_this_pass;
+}
+
+
+// --- 优化阶段三: 公共子表达式消除 ---
 
 bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
     bool changed_this_pass = false;
     for (auto& func : module.functions) {
         for (auto& block : func.blocks) {
             std::unordered_map<std::string, Operand> available_exprs;
-            // 存储每个表达式的操作数，用于精确的失效判断
             std::unordered_map<std::string, std::pair<std::string, std::string>> expr_operands;
 
             for (auto& instr : block.instructions) {
-                // 只处理纯计算指令
                 if (instr.opcode >= Instruction::ADD && instr.opcode <= Instruction::GE) {
                     std::string expr_id = get_expr_id(instr);
                     auto it = available_exprs.find(expr_id);
@@ -116,21 +164,16 @@ bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
                     }
                     else {
                         available_exprs[expr_id] = instr.result;
-                        // 记录该表达式的两个操作数ID
                         expr_operands[expr_id] = { get_operand_id(instr.arg1), get_operand_id(instr.arg2) };
                     }
                 }
 
-                // ---【核心修复】---
-                // 如果指令修改了一个变量，需要精确地使所有用到这个变量的旧表达式失效
                 if (is_variable_or_temp(instr.result)) {
                     std::string result_id = get_operand_id(instr.result);
                     for (auto it = available_exprs.begin(); it != available_exprs.end(); ) {
                         auto operands_it = expr_operands.find(it->first);
                         if (operands_it != expr_operands.end()) {
-                            // 精确判断：被修改的变量是否是表达式的操作数之一
                             if (operands_it->second.first == result_id || operands_it->second.second == result_id) {
-                                // 是，则该表达式失效
                                 expr_operands.erase(operands_it);
                                 it = available_exprs.erase(it);
                                 continue;
@@ -145,7 +188,7 @@ bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
     return changed_this_pass;
 }
 
-// --- 优化阶段三: 复写传播 (局部) ---
+// --- 优化阶段四: 复写传播 ---
 
 bool Optimizer::run_copy_propagation(ModuleIR& module) {
     bool changed_this_pass = false;
@@ -193,7 +236,7 @@ bool Optimizer::run_copy_propagation(ModuleIR& module) {
 }
 
 
-// --- 优化阶段四: 死代码消除 ---
+// --- 优化阶段五: 死代码消除 ---
 
 bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
     bool changed_at_all = false;
