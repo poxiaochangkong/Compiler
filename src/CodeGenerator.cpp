@@ -8,9 +8,9 @@
 // 在构造函数中选择策略
 CodeGenerator::CodeGenerator() {
     // 【重要】我们先用 SpillEverythingAllocator 来验证重构的正确性
-    //m_allocator = std::make_unique<SpillEverythingAllocator>();
+    m_allocator = std::make_unique<SpillEverythingAllocator>();
     // 当验证通过后，只需取消下面的注释即可切换到线性扫描
-    m_allocator = std::make_unique<LinearScanAllocator>();
+    //m_allocator = std::make_unique<LinearScanAllocator>();
 }
 
 // generate_function 现在只负责流程控制 (无改动)
