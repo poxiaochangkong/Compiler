@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
         //std::cout << "--- Optimization Finished ---\n" << std::endl;
 
         //std::cout << "\n--- Generated Intermediate Representation ---" << std::endl;
-        print_ir(ir_module);
+        //print_ir(ir_module);
         CodeGenerator code_gen;
         std::string assembly_code = code_gen.generate(ir_module);
 
