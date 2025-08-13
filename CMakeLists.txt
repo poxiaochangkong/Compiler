@@ -40,7 +40,7 @@ add_executable(Compiler
   src/SpillEverythingAllocator.cpp
   src/ControlFlowGraph.cpp
   src/LivenessAnalyzer.cpp
-  src/LinearScanAllocator.cpp
+  src/GreedyAllocator.cpp
   src/ast.hpp
   src/lexer.l
   src/parser.y
@@ -53,7 +53,7 @@ add_executable(Compiler
   src/SpillEverythingAllocator.hpp
   src/ControlFlowGraph.hpp
   src/LivenessAnalyzer.hpp
-  src/LinearScanAllocator.hpp
+  src/GreedyAllocator.hpp
 )
 
 # 5) »√±‡“Î∆˜ƒ‹’“µΩ parser.tab.h
