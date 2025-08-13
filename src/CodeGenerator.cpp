@@ -4,9 +4,12 @@
 #include <iostream>
 #include <stdexcept>
 #include <map>
+#include <vector>
 
 // 构造函数 (无改动)
 CodeGenerator::CodeGenerator() {
+    // 根据你的项目结构，GreedyAllocator 可能被命名为 LinearScanAllocator
+    // 我将使用你最新的上传文件中的名称：GreedyAllocator
     m_allocator = std::make_unique<GreedyAllocator>();
     //m_allocator = std::make_unique<SpillEverythingAllocator>();
 }
@@ -38,7 +41,7 @@ void CodeGenerator::generate_function(const FunctionIR& func) {
     m_output << m_allocator->getEpilogue();
 }
 
-// generate_instruction (添加了 CALL 指令的寄存器保存/恢复逻辑)
+// generate_instruction 严格遵循 Load-Compute-Store 模式，并修复了函数调用的栈操作
 void CodeGenerator::generate_instruction(const Instruction& instr) {
     static const std::map<Instruction::OpCode, std::string> op_to_asm = {
         {Instruction::ADD, "add"}, {Instruction::SUB, "sub"}, {Instruction::MUL, "mul"},
@@ -48,7 +51,6 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
         {Instruction::LE, "sle"}, {Instruction::GE, "sge"}
     };
 
-    // 获取当前 GreedyAllocator 正在使用的寄存器列表
     GreedyAllocator* greedy_allocator = dynamic_cast<GreedyAllocator*>(m_allocator.get());
     std::vector<std::string> used_regs = greedy_allocator ? greedy_allocator->getCurrentUsedRegs() : std::vector<std::string>();
 
@@ -123,22 +125,37 @@ void CodeGenerator::generate_instruction(const Instruction& instr) {
     }
     case Instruction::CALL: {
         m_output << "  # Save caller-saved registers\n";
-        // 动态生成保存寄存器的代码
-        int stack_offset = 0;
-        for (const auto& reg : used_regs) {
-            m_output << "  sw " << reg << ", " << stack_offset << "(sp)\n";
-            stack_offset += 4;
-        }
-        m_output << "  addi sp, sp, -" << stack_offset << "\n";
+        // 动态计算需要保存的寄存器数量
+        int num_regs_to_save = used_regs.size();
+        int stack_size_for_regs = num_regs_to_save * 4;
 
+        // 1. 调整栈指针，为保存的寄存器腾出空间
+        if (stack_size_for_regs > 0) {
+            m_output << "  addi sp, sp, -" << stack_size_for_regs << "\n";
+        }
+
+        // 2. 将寄存器中的值存储到新的栈空间
+        int current_offset = 0;
+        for (const auto& reg : used_regs) {
+            m_output << "  sw " << reg << ", " << current_offset << "(sp)\n";
+            current_offset += 4;
+        }
+
+        // 3. 执行 CALL 指令
         m_output << "  call " << instr.arg1.name << "\n";
 
-        m_output << "  addi sp, sp, " << stack_offset << "\n";
-        // 动态生成恢复寄存器的代码
+        // 4. 从栈中恢复寄存器值
+        current_offset = 0;
         for (const auto& reg : used_regs) {
-            stack_offset -= 4;
-            m_output << "  lw " << reg << ", " << stack_offset << "(sp)\n";
+            m_output << "  lw " << reg << ", " << current_offset << "(sp)\n";
+            current_offset += 4;
         }
+
+        // 5. 恢复栈指针
+        if (stack_size_for_regs > 0) {
+            m_output << "  addi sp, sp, " << stack_size_for_regs << "\n";
+        }
+
         m_output << "  # End save/restore\n";
 
         if (instr.result.kind != Operand::NONE) {

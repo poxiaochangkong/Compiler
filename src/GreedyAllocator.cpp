@@ -2,6 +2,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
 
 // 辅助函数 (无改动)
 static std::string get_operand_id_ls(const Operand& op) {
@@ -30,6 +31,7 @@ void GreedyAllocator::prepare(const FunctionIR& func) {
     m_spill_victim_idx = 0;
 
     std::stringstream ss;
+    // 为每个参数分配一个唯一的栈槽，并生成参数保存代码
     for (size_t i = 0; i < func.params.size(); ++i) {
         std::string id = func.params[i].name;
         m_next_spill_offset += 4;
@@ -44,9 +46,30 @@ void GreedyAllocator::prepare(const FunctionIR& func) {
             ss << "  sw t6, -" << m_spill_map[id] << "(fp)\n";
         }
     }
+
+    // 修复：为所有函数中的局部变量（IR中是 `VAR` 类型）预分配栈槽
+    // 这样可以确保每个变量都有唯一的存储位置，避免混淆
+    for (const auto& block : func.blocks) {
+        for (const auto& instr : block.instructions) {
+            std::string id = "";
+            if (instr.result.kind == Operand::VAR) {
+                id = instr.result.name;
+            }
+            else if (instr.arg1.kind == Operand::VAR) {
+                id = instr.arg1.name;
+            }
+            else if (instr.arg2.kind == Operand::VAR) {
+                id = instr.arg2.name;
+            }
+            if (!id.empty() && m_spill_map.find(id) == m_spill_map.end()) {
+                m_next_spill_offset += 4;
+                m_spill_map[id] = m_next_spill_offset;
+            }
+        }
+    }
+
     m_param_init_code = ss.str();
 }
-
 
 // loadOperand (无改动)
 std::string GreedyAllocator::loadOperand(const Operand& op, const std::string& dest_reg) {
@@ -67,6 +90,7 @@ std::string GreedyAllocator::loadOperand(const Operand& op, const std::string& d
         return ss.str();
     }
 
+    // 修复：确保在加载之前，栈槽已经被分配
     if (m_spill_map.count(id)) {
         ss << "  lw " << dest_reg << ", -" << m_spill_map.at(id) << "(fp)\n";
         return ss.str();
@@ -152,7 +176,7 @@ void GreedyAllocator::spillReg(const std::string& reg_to_spill, std::stringstrea
     m_reg_owner.erase(reg_to_spill);
 }
 
-// 新增：获取当前使用的物理寄存器列表
+// 获取当前使用的物理寄存器列表
 std::vector<std::string> GreedyAllocator::getCurrentUsedRegs() const {
     std::vector<std::string> used_regs;
     for (const auto& pair : m_reg_owner) {
