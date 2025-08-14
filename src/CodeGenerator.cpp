@@ -1,6 +1,7 @@
 #include "CodeGenerator.hpp"
 #include "SpillEverythingAllocator.hpp"
 #include "GreedyAllocator.hpp"
+#include "SmartSpillAllocator.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <map>
@@ -10,7 +11,8 @@
 CodeGenerator::CodeGenerator() {
     // 根据你的项目结构，GreedyAllocator 可能被命名为 LinearScanAllocator
     // 我将使用你最新的上传文件中的名称：GreedyAllocator
-    m_allocator = std::make_unique<GreedyAllocator>();
+    m_allocator = std::make_unique<SmartSpillAllocator>();
+    //m_allocator = std::make_unique<GreedyAllocator>();
     //m_allocator = std::make_unique<SpillEverythingAllocator>();
 }
 

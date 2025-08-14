@@ -41,6 +41,7 @@ add_executable(Compiler
   src/ControlFlowGraph.cpp
   src/LivenessAnalyzer.cpp
   src/GreedyAllocator.cpp
+  src/SmartSpillAllocator.cpp
   src/ast.hpp
   src/lexer.l
   src/parser.y
@@ -54,6 +55,7 @@ add_executable(Compiler
   src/ControlFlowGraph.hpp
   src/LivenessAnalyzer.hpp
   src/GreedyAllocator.hpp
+  src/SmartSpillAllocator.hpp
 )
 
 # 5) »√±‡“Î∆˜ƒ‹’“µΩ parser.tab.h
