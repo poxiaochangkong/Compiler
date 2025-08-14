@@ -83,7 +83,7 @@ void SmartSpillAllocator::prepare(const FunctionIR& func) {
     calculateLiveRanges(func);
     assignRegisters();
 
-    // 1. 按照原始逻辑，计算本地数据（ra, fp, s-regs, spills）所需的空间和偏移量
+    // 1. 计算本地数据所需的空间和偏移量
     int current_offset = 0;
 
     // 为 ra 和 fp 保存分配空间
@@ -98,26 +98,31 @@ void SmartSpillAllocator::prepare(const FunctionIR& func) {
         m_stack_offsets[reg] = current_offset;
     }
 
-    // 为需要溢出的局部变量/临时变量/寄存器传入参数分配空间
+    // --- FIX START ---
+    // 为需要溢出的【寄存器传入参数】(a0-a7)分配空间。
+    // 即使参数未使用，也必须为其分配空间，因为这是调用约定的一部分。
+    for (size_t i = 0; i < func.params.size() && i < 8; ++i) {
+        const auto& param_name = func.params[i].name;
+        if (m_reg_map.find(param_name) == m_reg_map.end()) {
+            current_offset -= 4;
+            m_stack_offsets[param_name] = current_offset;
+        }
+    }
+
+    // 为需要溢出的【局部变量/临时变量】分配空间
     std::set<std::string> param_names;
     for (const auto& p : func.params) {
         param_names.insert(p.name);
     }
     for (const auto& [key, range] : m_live_ranges) {
-        if (m_reg_map.find(key) == m_reg_map.end()) {
-            bool is_stack_param = false;
-            for (size_t i = 8; i < func.params.size(); ++i) {
-                if (func.params[i].name == key) {
-                    is_stack_param = true;
-                    break;
-                }
-            }
-            if (!is_stack_param) {
-                current_offset -= 4;
-                m_stack_offsets[key] = current_offset;
-            }
+        // 如果变量被溢出 并且 它不是一个参数
+        if (m_reg_map.find(key) == m_reg_map.end() && param_names.find(key) == param_names.end()) {
+            current_offset -= 4;
+            m_stack_offsets[key] = current_offset;
         }
     }
+    // --- FIX END ---
+
     int local_data_size = -current_offset;
 
     // 2. 计算为传出参数（Outgoing Arguments）所需的最大空间
@@ -162,6 +167,7 @@ void SmartSpillAllocator::prepare(const FunctionIR& func) {
                 param_ss << "  mv " << m_reg_map.at(param_name) << ", a" << i << "\n";
             }
             else {
+                // 现在这里可以安全地调用 .at()
                 param_ss << "  sw a" << i << ", " << m_stack_offsets.at(param_name) << "(fp)\n";
             }
         }
