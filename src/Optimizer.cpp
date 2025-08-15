@@ -22,14 +22,17 @@ static std::string get_operand_id(const Operand& op) {
 
 static std::string get_expr_id(const Instruction& instr) {
     std::stringstream ss;
-    std::string op1_id = get_operand_id(instr.arg1);
-    std::string op2_id = get_operand_id(instr.arg2);
-    // 对操作数排序，确保 a+b 和 b+a 有相同的ID
-    if (op1_id > op2_id) std::swap(op1_id, op2_id);
+    ss << instr.opcode;
+    if (is_variable_or_temp(instr.arg1)) ss << " " << get_operand_id(instr.arg1);
+    else if (instr.arg1.kind == Operand::CONST) ss << " " << instr.arg1.value;
 
-    ss << instr.opcode << " " << op1_id << " " << op2_id;
+    if (instr.arg2.kind != Operand::NONE) {
+        if (is_variable_or_temp(instr.arg2)) ss << " " << get_operand_id(instr.arg2);
+        else if (instr.arg2.kind == Operand::CONST) ss << " " << instr.arg2.value;
+    }
     return ss.str();
 }
+
 
 // --- 主协调函数 (保持不变) ---
 
@@ -205,66 +208,45 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
 }
 
 bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
-    bool changed_at_all = false;
+    // ... (代码无变化，保持原样)
+    bool changed_this_pass = false;
     for (auto& func : module.functions) {
-        if (func.blocks.empty()) continue;
-
-        // 1. 分析阶段：运行可用表达式分析器
-        ControlFlowGraph cfg(func);
-        AvailableExpressionsAnalyzer analyzer;
-        analyzer.run(func, cfg);
-        const auto& in_states = analyzer.get_in_states();
-
-        // 2. 转换阶段
-        //    这个map用于在遍历过程中，追踪表达式的计算结果被存放在哪个操作数里
-        std::unordered_map<std::string, Operand> expr_result_map;
-
         for (auto& block : func.blocks) {
-            // 获取在此块入口处就可用的表达式集合
-            const auto& available_on_entry = in_states.at(&block);
-
-            // 遍历块内指令
+            std::unordered_map<std::string, Operand> available_exprs;
+            std::unordered_map<std::string, std::pair<std::string, std::string>> expr_operands;
             for (auto& instr : block.instructions) {
-                // a. 检查当前指令是否是一个可以被消除的表达式
                 if (instr.opcode >= Instruction::ADD && instr.opcode <= Instruction::GE) {
                     std::string expr_id = get_expr_id(instr);
-
-                    // 如果表达式在块入口可用，并且我们已经记录了它的计算结果
-                    if (available_on_entry.count(expr_id) && expr_result_map.count(expr_id)) {
-                        // 找到了一个全局公共子表达式！
-                        Operand original_result = expr_result_map.at(expr_id);
-
-                        // 将当前指令替换为简单的赋值
+                    auto it = available_exprs.find(expr_id);
+                    if (it != available_exprs.end()) {
                         instr.opcode = Instruction::ASSIGN;
-                        instr.arg1 = original_result;
+                        instr.arg1 = it->second;
                         instr.arg2.kind = Operand::NONE;
-                        changed_at_all = true;
+                        changed_this_pass = true;
                     }
                     else {
-                        // 这是一个新的计算，记录下它的结果
-                        expr_result_map[expr_id] = instr.result;
+                        available_exprs[expr_id] = instr.result;
+                        expr_operands[expr_id] = { get_operand_id(instr.arg1), get_operand_id(instr.arg2) };
                     }
                 }
-
-                // b. 失效(Kill)逻辑：如果指令修改了一个变量，
-                //    那么所有使用这个变量作为操作数的表达式都变得不再可用。
                 if (is_variable_or_temp(instr.result)) {
                     std::string result_id = get_operand_id(instr.result);
-                    for (auto it = expr_result_map.begin(); it != expr_result_map.end(); ) {
-                        // 检查表达式的操作数是否包含被修改的变量
-                        // 注意：这是一个简化的检查，它假定表达式字符串包含操作数ID
-                        if (it->first.find(result_id) != std::string::npos) {
-                            it = expr_result_map.erase(it);
+                    for (auto it = available_exprs.begin(); it != available_exprs.end(); ) {
+                        auto operands_it = expr_operands.find(it->first);
+                        if (operands_it != expr_operands.end()) {
+                            if (operands_it->second.first == result_id || operands_it->second.second == result_id) {
+                                expr_operands.erase(operands_it);
+                                it = available_exprs.erase(it);
+                                continue;
+                            }
                         }
-                        else {
-                            ++it;
-                        }
+                        ++it;
                     }
                 }
             }
         }
     }
-    return changed_at_all;
+    return changed_this_pass;
 }
 
 bool Optimizer::run_copy_propagation(ModuleIR& module) {
