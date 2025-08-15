@@ -9,7 +9,7 @@
 
 // 前向声明
 struct FunctionIR;
-struct BasicBlock;
+// struct BasicBlock; // 我们现在自己管理BasicBlock，可以不前向声明
 
 // CFG中的一个节点
 struct CFGNode {
@@ -30,18 +30,20 @@ class ControlFlowGraph {
 public:
     explicit ControlFlowGraph(const FunctionIR& func);
 
-    // --- 新增：执行活跃变量分析的接口 ---
+    // --- 接口保持不变 ---
     void run_liveness_analysis();
-
     const std::vector<CFGNode>& get_nodes() const { return m_nodes; }
     void print_dot(const std::string& func_name) const;
 
 private:
     void build();
 
-    const FunctionIR& m_func;
+    const FunctionIR& m_func; // 仍然需要原始函数信息
     std::vector<CFGNode> m_nodes;
     std::map<std::string, CFGNode*> m_label_to_node;
+
+    // 新增：用于存储我们自己重新构建的基本块
+    std::vector<BasicBlock> m_owned_blocks;
 };
 
 #endif // CONTROL_FLOW_GRAPH_HPP

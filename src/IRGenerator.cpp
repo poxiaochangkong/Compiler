@@ -260,10 +260,12 @@ void IRGenerator::visit(IfStmt* node) {
 }
 
 void IRGenerator::visit(WhileStmt* node) {
+    // 1. 创建基本块（这部分是正确的）
     BasicBlock* cond_block = create_block(".while_cond_");
     BasicBlock* body_block = create_block(".while_body_");
     BasicBlock* end_block = create_block(".while_end_");
 
+    // 2. 设置 break 和 continue 的跳转目标（这部分是正确的）
     Operand end_label_op;
     end_label_op.kind = Operand::LABEL;
     end_label_op.name = end_block->label;
@@ -274,29 +276,37 @@ void IRGenerator::visit(WhileStmt* node) {
     cond_label_op.name = cond_block->label;
     continue_labels.push_back(cond_label_op);
 
+    // 3. 从当前块跳转到循环的条件判断块（这部分是正确的）
     current_block->instructions.push_back({ Instruction::JUMP, {}, cond_label_op });
 
-    add_block(cond_block);
-    node->cond->accept(this);
-    Operand body_label_op;
-    body_label_op.kind = Operand::LABEL;
-    body_label_op.name = body_block->label;
-    // JUMP_IF_NZERO (如果非0则跳转) -> body
-    current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, m_result_op, body_label_op });
-    // 如果为0，则自然掉落到下一条指令，即跳转到 end
-    current_block->instructions.push_back({ Instruction::JUMP, {}, end_label_op });
+    // --- 核心修改部分 ---
 
+    // 4. 构建条件块 (cond_block)。它是循环的入口。
+    add_block(cond_block);
+    node->cond->accept(this); // 计算条件，结果在 m_result_op 中
+
+    // 【修改】如果条件为零（假），则跳转到循环结束块。
+    // 这是 cond_block 唯一的终结者指令。
+    current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, end_label_op });
+
+    // 5. 构建循环体块 (body_block)。
+    // 如果上一步的 JUMP_IF_ZERO 未发生跳转（即条件为真），
+    // 控制流会自然地 "fall through" 到这里。
     add_block(body_block);
     node->body->accept(this);
-    // 只有当循环体块没有被终结时，才跳回条件判断
+
+    // 循环体执行完后，必须无条件跳回条件检查块，形成循环。
+    // （你原来的代码在这里的逻辑已经是正确的）
     if (current_block && (current_block->instructions.empty() ||
         (current_block->instructions.back().opcode != Instruction::RET &&
             current_block->instructions.back().opcode != Instruction::JUMP))) {
         current_block->instructions.push_back({ Instruction::JUMP, {}, cond_label_op });
     }
 
+    // 6. 添加结束块，作为循环的出口和 break 的跳转目标。
     add_block(end_block);
 
+    // 7. 清理栈（这部分是正确的）
     break_labels.pop_back();
     continue_labels.pop_back();
 }
