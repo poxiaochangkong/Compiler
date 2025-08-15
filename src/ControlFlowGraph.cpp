@@ -65,7 +65,7 @@ void ControlFlowGraph::build() {
             next_node->preds.push_back(current_node);
         }
     }
-    this->print_dot(m_func.name);
+    //this->print_dot(m_func.name);
 }
 
 // --- 其他函数保持不变 ---
