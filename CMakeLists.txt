@@ -42,6 +42,7 @@ add_executable(Compiler
   src/LivenessAnalyzer.cpp
   src/GreedyAllocator.cpp
   src/SmartSpillAllocator.cpp
+  src/ConstantPropagationAnalyzer.cpp
   src/ast.hpp
   src/lexer.l
   src/parser.y
@@ -56,6 +57,7 @@ add_executable(Compiler
   src/LivenessAnalyzer.hpp
   src/GreedyAllocator.hpp
   src/SmartSpillAllocator.hpp
+  src/ConstantPropagationAnalyzer.hpp
 )
 
 # 5) »√±‡“Î∆˜ƒ‹’“µΩ parser.tab.h
