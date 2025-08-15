@@ -1,5 +1,6 @@
 #include "Optimizer.hpp"
 #include "IRGenerator.hpp" 
+#include "ControlFlowGraph.hpp" // 新增：引入CFG头文件
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
@@ -7,7 +8,7 @@
 #include <sstream>
 #include <algorithm> // For std::reverse and std::max
 
-// --- 辅助函数 ---
+// --- 辅助函数 (保持不变) ---
 
 static bool is_variable_or_temp(const Operand& op) {
     return op.kind == Operand::VAR || op.kind == Operand::TEMP;
@@ -33,7 +34,7 @@ static std::string get_expr_id(const Instruction& instr) {
 }
 
 
-// --- 主协调函数 ---
+// --- 主协调函数 (保持不变) ---
 
 void Optimizer::optimize(ModuleIR& module) {
     // 【修复】在所有优化开始前，初始化优化器自己的临时变量计数器
@@ -47,13 +48,13 @@ void Optimizer::optimize(ModuleIR& module) {
         bool alg_changed = run_algebraic_simplification(module);
         bool cse_changed = run_common_subexpression_elimination(module);
         bool cp_changed = run_copy_propagation(module);
-        bool dce_changed = run_dead_code_elimination(module);
+        bool dce_changed = run_dead_code_elimination(module); // 调用的是新版DCE
 
         changed_in_cycle = alg_changed || cse_changed || cp_changed || dce_changed;
     }
 }
 
-// --- 【修复】用于创建唯一临时变量的内部工具 ---
+// --- 临时变量工具 (保持不变) ---
 
 void Optimizer::initialize_temp_counter(const ModuleIR& module) {
     int max_id = -1;
@@ -77,7 +78,7 @@ Operand Optimizer::new_temp() {
 }
 
 
-// --- 优化阶段一: 常量折叠 ---
+// --- 其他优化阶段 (全部保持不变) ---
 void Optimizer::run_constant_folding(ModuleIR& module) {
     // ... (代码无变化，保持原样)
     for (auto& func : module.functions) {
@@ -120,7 +121,6 @@ void Optimizer::run_constant_folding(ModuleIR& module) {
     }
 }
 
-// --- 优化阶段二: 代数化简 ---
 bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
     // ... (代码无变化，保持原样)
     bool changed_this_pass = false;
@@ -146,10 +146,11 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg2.kind = Operand::NONE;
                         changed_this_pass = true;
-                    }else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val == -1) {
+                    }
+                    else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val == -1) {
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg2.kind = Operand::NONE;
-                        instr.arg1.value = 0-instr.arg1.value;
+                        instr.arg1.value = 0 - instr.arg1.value;
                         changed_this_pass = true;
                     }
                     else if (instr.opcode == Instruction::MUL && val == 0) {
@@ -166,7 +167,6 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
     return changed_this_pass;
 }
 
-// --- 优化阶段三: 公共子表达式消除 ---
 bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
     // ... (代码无变化，保持原样)
     bool changed_this_pass = false;
@@ -209,7 +209,6 @@ bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
     return changed_this_pass;
 }
 
-// --- 优化阶段四: 复写传播 ---
 bool Optimizer::run_copy_propagation(ModuleIR& module) {
     // ... (代码无变化，保持原样)
     bool changed_this_pass = false;
@@ -254,30 +253,44 @@ bool Optimizer::run_copy_propagation(ModuleIR& module) {
     return changed_this_pass;
 }
 
-// --- 优化阶段五: 死代码消除 ---
+// --- 优化阶段五: 死代码消除 (全新实现) ---
 bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
-    // ... (代码无变化，保持原样)
     bool changed_at_all = false;
+    // 对每个函数独立进行分析和优化
     for (auto& func : module.functions) {
-        std::unordered_set<std::string> used_operands;
-        for (auto& block : func.blocks) {
-            for (auto& instr : block.instructions) {
-                if (is_variable_or_temp(instr.arg1)) used_operands.insert(get_operand_id(instr.arg1));
-                if (is_variable_or_temp(instr.arg2)) used_operands.insert(get_operand_id(instr.arg2));
-                if (instr.opcode == Instruction::RET || instr.opcode == Instruction::JUMP_IF_ZERO ||
-                    instr.opcode == Instruction::JUMP_IF_NZERO || instr.opcode == Instruction::PARAM) {
-                    if (is_variable_or_temp(instr.arg1)) used_operands.insert(get_operand_id(instr.arg1));
-                }
-            }
+        if (func.blocks.empty()) continue;
+
+        // 1. 构建CFG并运行活跃变量分析
+        // 这个开销只在DCE内部，不会影响其他优化
+        ControlFlowGraph cfg(func);
+        cfg.run_liveness_analysis();
+
+        // 2. 使用一个map来快速查找每个block对应的CFGNode分析结果
+        std::unordered_map<const BasicBlock*, const CFGNode*> block_to_node;
+        for (const auto& node : cfg.get_nodes()) {
+            block_to_node[node.block] = &node;
         }
-        std::vector<Instruction> new_instructions;
+
+        // 3. 遍历函数中的每个基本块，并利用分析结果进行DCE
         for (auto& block : func.blocks) {
-            new_instructions.clear();
+            // 获取当前块的活跃变量分析结果
+            const CFGNode* current_node = block_to_node.at(&block);
+            // 从块的出口处的活跃变量开始，反向推导
+            std::set<std::string> live_now = current_node->live_out;
+
+            // 我们需要从后往前遍历并可能删除指令，所以使用一个临时的vector
+            std::vector<Instruction> new_instructions;
             new_instructions.reserve(block.instructions.size());
-            for (const auto& instr : block.instructions) {
+
+            for (auto it = block.instructions.rbegin(); it != block.instructions.rend(); ++it) {
+                const auto& instr = *it;
                 bool is_dead = false;
+
                 if (is_variable_or_temp(instr.result)) {
-                    if (used_operands.find(get_operand_id(instr.result)) == used_operands.end()) {
+                    std::string result_id = get_operand_id(instr.result);
+                    // 核心判断：如果一个指令的结果不在当前活跃变量集合中，
+                    // 并且该指令没有副作用（如函数调用），则为死代码。
+                    if (live_now.find(result_id) == live_now.end()) {
                         switch (instr.opcode) {
                         case Instruction::ADD: case Instruction::SUB: case Instruction::MUL:
                         case Instruction::DIV: case Instruction::MOD: case Instruction::NOT:
@@ -286,26 +299,44 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
                         case Instruction::ASSIGN:
                             is_dead = true;
                             break;
-                        default: is_dead = false; break;
+                        default: // CALL, RET, JUMP等有副作用的指令不能被消除
+                            is_dead = false;
+                            break;
                         }
                     }
                 }
+
                 if (is_dead) {
                     changed_at_all = true;
                 }
                 else {
+                    // 如果指令不是死的，保留它
                     new_instructions.push_back(instr);
+                    // 并更新活跃变量集合：移除定义的变量，添加使用的变量
+                    if (is_variable_or_temp(instr.result)) {
+                        live_now.erase(get_operand_id(instr.result));
+                    }
+                    if (is_variable_or_temp(instr.arg1)) {
+                        live_now.insert(get_operand_id(instr.arg1));
+                    }
+                    if (is_variable_or_temp(instr.arg2)) {
+                        live_now.insert(get_operand_id(instr.arg2));
+                    }
                 }
             }
+            // 因为我们是反向遍历并push_back，所以最后需要再次反转
+            std::reverse(new_instructions.begin(), new_instructions.end());
             block.instructions = std::move(new_instructions);
         }
     }
     return changed_at_all;
 }
 
-// --- 【修复】优化阶段六: 尾递归消除 ---
+
+// --- 优化阶段六: 尾递归消除 (保持不变) ---
 
 bool Optimizer::run_tail_recursion_elimination(ModuleIR& module) {
+    // ... (代码无变化，保持原样)
     bool changed_this_pass = false;
     for (auto& func : module.functions) {
         if (func.blocks.empty()) continue;

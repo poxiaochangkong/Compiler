@@ -1,0 +1,34 @@
+
+// 快速幂算法
+int power(int base, int exponent)
+{
+    int result = 1;
+
+    while (exponent > 0)
+    {
+        if (exponent % 2 == 1)
+        {
+            result = result * base;
+        }
+        base = base * base;
+        exponent = exponent / 2;
+    }
+
+    return result;
+}
+
+
+// 主函数
+int main()
+{
+    int result = 0;
+
+   
+
+    // 测试快速幂
+    int pow_result = power(3, 11);
+
+    result = pow_result;
+
+    return result;
+}
