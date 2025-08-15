@@ -118,26 +118,19 @@ void IRGenerator::visit(FuncDef* node) {
     m_scopes.clear();
     m_var_counter = 0;
     enter_scope(); // 创建函数顶级作用域
-    // --- 【核心修改】---
-    
 
     // 每个函数都有一个入口块
     BasicBlock* entry_block = create_block(".entry_");
     add_block(entry_block);
 
     for (auto* param_ast : node->params) {
-        // 1. 为参数创建唯一的 Operand (例如 a -> a_0)
         Operand unique_param_op = declare_variable(param_ast->name);
-        //unique_param_op.type = param_ast->type_val; // 可选：如果 Operand 需要类型信息
-
-        // 2. 将这个【唯一的】Operand 添加到 FunctionIR 的参数列表中
         current_func->params.push_back({ unique_param_op.name, });
     }
 
     node->body->accept(this);
 
-    // 确保非 void 函数的所有路径都有返回（这是一个简化的检查）
-    // 一个更完整的检查需要分析控制流图
+    // 确保非 void 函数的所有路径都有返回
     if (current_block && (current_block->instructions.empty() || current_block->instructions.back().opcode != Instruction::RET)) {
         if (node->ret == TypeKind::TY_VOID) {
             current_block->instructions.push_back({ Instruction::RET });
@@ -154,7 +147,8 @@ void IRGenerator::visit(Param* node) {
 void IRGenerator::visit(Block* node) {
     enter_scope();
     for (auto* stmt : node->stmts) {
-        if (stmt) stmt->accept(this);
+        // 如果 current_block 为 nullptr，说明我们处于死代码区域，可以停止生成
+        if (stmt && current_block) stmt->accept(this);
     }
     exit_scope();
 }
@@ -166,29 +160,22 @@ void IRGenerator::visit(ExprStmt* node) {
 }
 
 void IRGenerator::visit(AssignStmt* node) {
-    // 1. 访问右侧表达式
     node->rhs->accept(this);
     Operand rhs = m_result_op;
-
-    // 2. 查找要赋值的变量的唯一操作数
     Operand lhs = lookup_variable(node->name);
-
-    // 3. 生成赋值指令
     current_block->instructions.push_back({ Instruction::ASSIGN, lhs, rhs });
 }
 
 void IRGenerator::visit(DeclStmt* node) {
-    // 根据 parser.y 的语法，node->init 总是非空
-   // 1. 访问初始化表达式，结果在 m_result_op
-    node->init->accept(this); // 使用 node->init 保持一致
+    node->init->accept(this);
     Operand rhs = m_result_op;
-
-    // 2. 在当前作用域声明新变量，并获取其唯一操作数
     Operand lhs = declare_variable(node->name);
-
-    // 3. 生成赋值指令
     current_block->instructions.push_back({ Instruction::ASSIGN, lhs, rhs });
 }
+
+// =================================================================
+// vvvvvvvvvvvvvvvv         修复开始         vvvvvvvvvvvvvvvvvv
+// =================================================================
 
 void IRGenerator::visit(ReturnStmt* node) {
     Instruction instr;
@@ -198,56 +185,77 @@ void IRGenerator::visit(ReturnStmt* node) {
         instr.arg1 = m_result_op;
     }
     current_block->instructions.push_back(instr);
+
+    // 【修复】生成终结者指令后，切换到一个新的、不可达的块
+    if (current_func) {
+        BasicBlock* unreachable_block = create_block(".unreachable_");
+        add_block(unreachable_block);
+    }
 }
 
 void IRGenerator::visit(BreakStmt* node) {
     if (!break_labels.empty()) {
         current_block->instructions.push_back({ Instruction::JUMP, {}, break_labels.back() });
+
+        // 【修复】生成终结者指令后，切换到一个新的、不可达的块
+        if (current_func) {
+            BasicBlock* unreachable_block = create_block(".unreachable_");
+            add_block(unreachable_block);
+        }
     }
 }
 
 void IRGenerator::visit(ContinueStmt* node) {
     if (!continue_labels.empty()) {
         current_block->instructions.push_back({ Instruction::JUMP, {}, continue_labels.back() });
+
+        // 【修复】生成终结者指令后，切换到一个新的、不可达的块
+        if (current_func) {
+            BasicBlock* unreachable_block = create_block(".unreachable_");
+            add_block(unreachable_block);
+        }
     }
 }
 
+// =================================================================
+// ^^^^^^^^^^^^^^^^          修复结束          ^^^^^^^^^^^^^^^^^^
+// =================================================================
+
+
 void IRGenerator::visit(IfStmt* node) {
-    // 1. 创建需要的块
     BasicBlock* then_block = create_block();
     BasicBlock* merge_block = create_block();
-    BasicBlock* else_block = node->elseS ? create_block() : nullptr; // 没 else 就不创建
+    BasicBlock* else_block = node->elseS ? create_block() : nullptr;
 
-    // 如果为假，跳转的目标是 else 块（如果存在）或 merge 块（如果不存在）
     Operand false_dest_label;
     false_dest_label.kind = Operand::LABEL;
     false_dest_label.name = else_block ? else_block->label : merge_block->label;
 
-    // 2. 计算条件
     node->cond->accept(this);
 
-    // 3. 只需一条条件跳转指令
-    // 如果条件为假，跳转到 false_dest_label
     current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, false_dest_label });
-    // 如果条件为真，程序会从这里“自然掉落”，进入我们即将生成的 then_block
 
-    // 4. 紧接着生成 then_block 的代码
     add_block(then_block);
     node->thenS->accept(this);
 
-    // 5. then_block 必须以跳转结束，以跳过 else_block
-    // (除非 then_block 已经有 return 了)
-    if (current_block->instructions.empty() || current_block->instructions.back().opcode != Instruction::RET) {
+    // 只有当当前块没有被终结时，才添加跳向 merge_block 的 JUMP
+    if (current_block && (current_block->instructions.empty() ||
+        (current_block->instructions.back().opcode != Instruction::RET &&
+            current_block->instructions.back().opcode != Instruction::JUMP))) {
         current_block->instructions.push_back({ Instruction::JUMP, {}, {Operand::LABEL, merge_block->label} });
     }
 
-    // 6. 如果有 else，生成它的代码
     if (else_block) {
         add_block(else_block);
         node->elseS->accept(this);
+        // 同样，检查 else 块是否已经被终结
+        if (current_block && (current_block->instructions.empty() ||
+            (current_block->instructions.back().opcode != Instruction::RET &&
+                current_block->instructions.back().opcode != Instruction::JUMP))) {
+            current_block->instructions.push_back({ Instruction::JUMP, {}, {Operand::LABEL, merge_block->label} });
+        }
     }
 
-    // 7. 最后的汇合点
     add_block(merge_block);
 }
 
@@ -256,7 +264,6 @@ void IRGenerator::visit(WhileStmt* node) {
     BasicBlock* body_block = create_block(".while_body_");
     BasicBlock* end_block = create_block(".while_end_");
 
-    // 设置 break 和 continue 的跳转目标
     Operand end_label_op;
     end_label_op.kind = Operand::LABEL;
     end_label_op.name = end_block->label;
@@ -267,29 +274,29 @@ void IRGenerator::visit(WhileStmt* node) {
     cond_label_op.name = cond_block->label;
     continue_labels.push_back(cond_label_op);
 
-    // 无条件跳转到条件判断块
     current_block->instructions.push_back({ Instruction::JUMP, {}, cond_label_op });
 
-    // 1. 生成条件判断块
     add_block(cond_block);
     node->cond->accept(this);
     Operand body_label_op;
     body_label_op.kind = Operand::LABEL;
     body_label_op.name = body_block->label;
+    // JUMP_IF_NZERO (如果非0则跳转) -> body
     current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, m_result_op, body_label_op });
-    // 如果条件为假，跳转到循环结束块
+    // 如果为0，则自然掉落到下一条指令，即跳转到 end
     current_block->instructions.push_back({ Instruction::JUMP, {}, end_label_op });
 
-    // 2. 生成循环体块
     add_block(body_block);
     node->body->accept(this);
-    // 循环体结束后，无条件跳回条件判断块
-    current_block->instructions.push_back({ Instruction::JUMP, {}, cond_label_op });
+    // 只有当循环体块没有被终结时，才跳回条件判断
+    if (current_block && (current_block->instructions.empty() ||
+        (current_block->instructions.back().opcode != Instruction::RET &&
+            current_block->instructions.back().opcode != Instruction::JUMP))) {
+        current_block->instructions.push_back({ Instruction::JUMP, {}, cond_label_op });
+    }
 
-    // 3. 后续代码在循环结束块中生成
     add_block(end_block);
 
-    // 离开循环，弹出对应的标签
     break_labels.pop_back();
     continue_labels.pop_back();
 }
@@ -300,44 +307,38 @@ void IRGenerator::visit(IntLiteral* node) {
 }
 
 void IRGenerator::visit(VarExpr* node) {
-    // 查找变量对应的唯一操作数，作为表达式的结果
     m_result_op = lookup_variable(node->name);
 }
 
 void IRGenerator::visit(BinaryExpr* node) {
-    // --- 处理短路求值 ---
     if (node->op == BinOp::LAnd || node->op == BinOp::LOr) {
         Operand res = new_temp();
+        BasicBlock* rhs_block = create_block();
         BasicBlock* set_true_block = create_block();
         BasicBlock* set_false_block = create_block();
         BasicBlock* end_block = create_block();
 
+        Operand rhs_label; rhs_label.kind = Operand::LABEL; rhs_label.name = rhs_block->label;
         Operand set_true_label; set_true_label.kind = Operand::LABEL; set_true_label.name = set_true_block->label;
         Operand set_false_label; set_false_label.kind = Operand::LABEL; set_false_label.name = set_false_block->label;
         Operand end_label; end_label.kind = Operand::LABEL; end_label.name = end_block->label;
 
-        // --- 计算左操作数 ---
         node->lhs->accept(this);
         Operand lhs_val = m_result_op;
 
         if (node->op == BinOp::LAnd) {
-            // a && b: 如果 a 为假，则整个表达式为假
             current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, lhs_val, set_false_label });
         }
         else { // BinOp::LOr
-            // a || b: 如果 a 为真，则整个表达式为真
             current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, lhs_val, set_true_label });
         }
+        add_block(rhs_block);
 
-        // --- 如果没有短路，计算右操作数 ---
         node->rhs->accept(this);
         Operand rhs_val = m_result_op;
-        // 如果 rhs 为假，则整个表达式为假
         current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, rhs_val, set_false_label });
-        // 否则，整个表达式为真
         current_block->instructions.push_back({ Instruction::JUMP, {}, set_true_label });
 
-        // --- 设置结果的块 ---
         add_block(set_true_block);
         current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 1} });
         current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
@@ -346,13 +347,11 @@ void IRGenerator::visit(BinaryExpr* node) {
         current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 0} });
         current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
 
-        // --- 汇合点 ---
         add_block(end_block);
         m_result_op = res;
         return;
     }
 
-    // --- 处理普通二元运算 (保持不变) ---
     node->lhs->accept(this);
     Operand lhs_op = m_result_op;
 
@@ -379,46 +378,35 @@ void IRGenerator::visit(UnaryExpr* node) {
         current_block->instructions.push_back({ Instruction::SUB, m_result_op, zero, sub_op });
     }
     else { // UnOp::Pos
-        // 正号是无操作，直接传递子表达式的结果
         m_result_op = sub_op;
     }
 }
 
 void IRGenerator::visit(CallExpr* node) {
-    // 1. 为所有参数生成操作数
     std::vector<Operand> args_ops;
     for (auto* arg_expr : node->args) {
         arg_expr->accept(this);
         args_ops.push_back(m_result_op);
     }
 
-    //// 2. 按照 C 语言的调用约定 (cdecl)，参数从右到左入栈。
-    ////    因此我们反向遍历参数，为每个参数生成一条 PARAM 指令。
-    // RISC-V32约定从左至右。注释掉
-    //std::reverse(args_ops.begin(), args_ops.end());
     for (const auto& arg_op : args_ops) {
         current_block->instructions.push_back({ Instruction::PARAM, {}, arg_op });
     }
 
-    // 3. 生成 CALL 指令
     Operand callee_op;
-    callee_op.kind = Operand::VAR; // 函数名
+    callee_op.kind = Operand::VAR;
     callee_op.name = node->callee;
 
-    // 函数的返回值存入一个新的临时变量
     Operand result_op = new_temp();
 
     Instruction call_instr;
     call_instr.opcode = Instruction::CALL;
     call_instr.result = result_op;
     call_instr.arg1 = callee_op;
-    // 将参数数量作为 arg2 传递，方便后续代码生成器知道要从栈上清理多少空间
     call_instr.arg2.kind = Operand::CONST;
     call_instr.arg2.value = node->args.size();
 
     current_block->instructions.push_back(call_instr);
 
-    // 4. 将函数调用的返回值作为当前表达式的结果
     m_result_op = result_op;
 }
-
