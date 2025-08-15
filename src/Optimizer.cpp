@@ -37,20 +37,21 @@ static std::string get_expr_id(const Instruction& instr) {
 // --- 主协调函数 (保持不变) ---
 
 void Optimizer::optimize(ModuleIR& module) {
-    // 【修复】在所有优化开始前，初始化优化器自己的临时变量计数器
     initialize_temp_counter(module);
 
-    run_constant_folding(module);
+    // 尾递归消除通常只做一次，且在循环优化前做比较好
     run_tail_recursion_elimination(module);
 
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
+        // 【新增】将常量传播加入优化循环
+        bool cp_prop_changed = run_constant_propagation(module);
         bool alg_changed = run_algebraic_simplification(module);
         bool cse_changed = run_common_subexpression_elimination(module);
-        bool cp_changed = run_copy_propagation(module);
-        bool dce_changed = run_dead_code_elimination(module); // 调用的是新版DCE
+        bool copy_prop_changed = run_copy_propagation(module);
+        bool dce_changed = run_dead_code_elimination(module);
 
-        changed_in_cycle = alg_changed || cse_changed || cp_changed || dce_changed;
+        changed_in_cycle = cp_prop_changed || alg_changed || cse_changed || copy_prop_changed || dce_changed;
     }
 }
 
@@ -79,46 +80,85 @@ Operand Optimizer::new_temp() {
 
 
 // --- 其他优化阶段 (全部保持不变) ---
-void Optimizer::run_constant_folding(ModuleIR& module) {
-    // ... (代码无变化，保持原样)
+bool Optimizer::run_constant_propagation(ModuleIR& module) {
+    bool changed_at_all = false;
     for (auto& func : module.functions) {
+        if (func.blocks.empty()) continue;
+
+        // 1. 构建CFG
+        ControlFlowGraph cfg(func);
+
+        // 2. 运行分析
+        ConstantPropagationAnalyzer analyzer;
+        analyzer.run(func, cfg);
+
+        // 3. 获取分析结果
+        const auto& in_states = analyzer.get_in_states();
+
+        // 4. 根据分析结果进行代码转换
         for (auto& block : func.blocks) {
+            // 获取该块入口处的常量信息，并用它来维护块内的当前状态
+            ConstState current_state = in_states.at(&block);
+
             for (auto& instr : block.instructions) {
-                if (instr.arg1.kind == Operand::CONST && instr.arg2.kind == Operand::CONST) {
-                    int val1 = instr.arg1.value;
-                    int val2 = instr.arg2.value;
-                    int result = 0;
-                    bool optimized = true;
-                    switch (instr.opcode) {
-                    case Instruction::ADD: result = val1 + val2; break;
-                    case Instruction::SUB: result = val1 - val2; break;
-                    case Instruction::MUL: result = val1 * val2; break;
-                    case Instruction::DIV: if (val2 == 0) { optimized = false; break; } result = val1 / val2; break;
-                    case Instruction::MOD: if (val2 == 0) { optimized = false; break; } result = val1 % val2; break;
-                    case Instruction::EQ:  result = (val1 == val2); break;
-                    case Instruction::NEQ: result = (val1 != val2); break;
-                    case Instruction::LT:  result = (val1 < val2);  break;
-                    case Instruction::GT:  result = (val1 > val2);  break;
-                    case Instruction::LE:  result = (val1 <= val2); break;
-                    case Instruction::GE:  result = (val1 >= val2); break;
-                    default: optimized = false; break;
-                    }
-                    if (optimized) {
-                        instr.opcode = Instruction::ASSIGN;
-                        instr.arg1.kind = Operand::CONST;
-                        instr.arg1.value = result;
-                        instr.arg2.kind = Operand::NONE;
+                // 4.1 替换源操作数
+                Operand* operands_to_check[] = { &instr.arg1, &instr.arg2 };
+                for (auto* op_ptr : operands_to_check) {
+                    if (is_variable_or_temp(*op_ptr)) {
+                        std::string id = get_operand_id(*op_ptr);
+                        if (current_state.count(id)) {
+                            op_ptr->kind = Operand::CONST;
+                            op_ptr->value = current_state.at(id);
+                            changed_at_all = true;
+                        }
                     }
                 }
-                else if (instr.arg1.kind == Operand::CONST && instr.arg2.kind == Operand::NONE) {
-                    if (instr.opcode == Instruction::NOT) {
-                        instr.opcode = Instruction::ASSIGN;
-                        instr.arg1.value = !instr.arg1.value;
+
+                // 4.2 更新当前块内的常量状态 (KILL & GEN)
+                if (is_variable_or_temp(instr.result)) {
+                    std::string dest_id = get_operand_id(instr.result);
+                    current_state.erase(dest_id); // KILL: 赋值让旧状态失效
+
+                    // GEN: 如果是常量赋值或可折叠的指令，生成新的常量信息
+                    if (instr.arg1.kind == Operand::CONST) {
+                        if (instr.opcode == Instruction::ASSIGN) {
+                            current_state[dest_id] = instr.arg1.value;
+                        }
+                        else if (instr.arg2.kind == Operand::CONST) {
+                            // 此时源操作数已经被替换，可以进行常量折叠
+                            int val1 = instr.arg1.value;
+                            int val2 = instr.arg2.value;
+                            int result = 0;
+                            bool folded = true;
+                            switch (instr.opcode) {
+                            case Instruction::ADD: result = val1 + val2; break;
+                            case Instruction::SUB: result = val1 - val2; break;
+                            case Instruction::MUL: result = val1 * val2; break;
+                            case Instruction::DIV: if (val2 == 0) { folded = false; break; } result = val1 / val2; break;
+                            case Instruction::MOD: if (val2 == 0) { folded = false; break; } result = val1 % val2; break;
+                            case Instruction::EQ:  result = (val1 == val2); break;
+                            case Instruction::NEQ: result = (val1 != val2); break;
+                            case Instruction::LT:  result = (val1 < val2);  break;
+                            case Instruction::GT:  result = (val1 > val2);  break;
+                            case Instruction::LE:  result = (val1 <= val2); break;
+                            case Instruction::GE:  result = (val1 >= val2); break;
+                            default: folded = false; break;
+                            }
+                            if (folded) {
+                                current_state[dest_id] = result;
+                                // 进一步优化：直接将指令替换为 a = C
+                                instr.opcode = Instruction::ASSIGN;
+                                instr.arg1.value = result;
+                                instr.arg2.kind = Operand::NONE;
+                                changed_at_all = true;
+                            }
+                        }
                     }
                 }
             }
         }
     }
+    return changed_at_all;
 }
 
 bool Optimizer::run_algebraic_simplification(ModuleIR& module) {

@@ -2,6 +2,8 @@
 #define OPTIMIZER_HPP
 
 #include "IRGenerator.hpp"
+// 【新增】包含我们新创建的分析器头文件
+#include "ConstantPropagationAnalyzer.hpp"
 
 class Optimizer {
 public:
@@ -9,7 +11,8 @@ public:
 
 private:
     // --- 各个优化阶段的私有实现 ---
-    void run_constant_folding(ModuleIR& module);
+    // 【修改】将简单的常量折叠替换为基于数据流的常量传播
+    bool run_constant_propagation(ModuleIR& module);
     bool run_algebraic_simplification(ModuleIR& module);
     bool run_common_subexpression_elimination(ModuleIR& module);
     bool run_copy_propagation(ModuleIR& module);
