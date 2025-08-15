@@ -146,6 +146,11 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg2.kind = Operand::NONE;
                         changed_this_pass = true;
+                    }else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val == -1) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg2.kind = Operand::NONE;
+                        instr.arg1.value = 0-instr.arg1.value;
+                        changed_this_pass = true;
                     }
                     else if (instr.opcode == Instruction::MUL && val == 0) {
                         instr.opcode = Instruction::ASSIGN;
