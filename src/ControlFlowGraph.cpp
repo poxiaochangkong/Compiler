@@ -39,6 +39,10 @@ void ControlFlowGraph::build() {
             else if (last_instr.opcode == Instruction::RET) {
                 fall_through = false;
             }
+            else {
+                std::cerr << "block has no terminal, label:{"<<current_node->block->label<<std::endl;
+            }
+            //if(instructions.)
         }
 
         if (fall_through && (i + 1 < m_nodes.size())) {
