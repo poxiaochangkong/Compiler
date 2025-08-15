@@ -3,6 +3,7 @@
 #include <string>    // 用于 std::to_string
 #include <algorithm>
 
+
 ModuleIR IRGenerator::generate(Program* root) {
     if (root) {
         root->accept(this);
@@ -101,6 +102,47 @@ Instruction::OpCode IRGenerator::map_bin_op(BinOp op) {
     }
 }
 
+void IRGenerator::generate_if_chain(IfStmt* node, Operand merge_label) {
+    BasicBlock* then_block = create_block(".L");
+    // 如果有 else 分支，为它创建一个块；否则，条件为假时直接跳到最终合并点
+    BasicBlock* else_block = node->elseS ? create_block(".L") : nullptr;
+
+    Operand false_dest_label = else_block ? Operand{ Operand::LABEL, else_block->label } : merge_label;
+
+    // 1. 生成条件判断
+    node->cond->accept(this);
+    current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, false_dest_label });
+
+    // 2. 生成 'then' 分支
+    add_block(then_block);
+    node->thenS->accept(this);
+    // 如果 'then' 分支没有自己的终结指令 (如 return)，则无条件跳转到最终合并点
+    if (current_block && (current_block->instructions.empty() ||
+        (current_block->instructions.back().opcode != Instruction::RET &&
+            current_block->instructions.back().opcode != Instruction::JUMP))) {
+        current_block->instructions.push_back({ Instruction::JUMP, {}, merge_label });
+    }
+
+    // 3. 生成 'else' 或 'else if' 分支
+    if (else_block) {
+        add_block(else_block);
+        // 检查 'else' 部分是否是另一个 'if' 语句 (即 "else if")
+        if (IfStmt* else_if_stmt = dynamic_cast<IfStmt*>(node->elseS)) {
+            // 如果是，则递归调用，并把【同一个】合并点标签传递下去
+            generate_if_chain(else_if_stmt, merge_label);
+        }
+        else {
+            // 如果是普通的 'else' 块
+            node->elseS->accept(this);
+            // 如果 'else' 分支没有自己的终结指令，则无条件跳转到最终合并点
+            if (current_block && (current_block->instructions.empty() ||
+                (current_block->instructions.back().opcode != Instruction::RET &&
+                    current_block->instructions.back().opcode != Instruction::JUMP))) {
+                current_block->instructions.push_back({ Instruction::JUMP, {}, merge_label });
+            }
+        }
+    }
+}
 // --- Visitor 方法实现 ---
 
 void IRGenerator::visit(Program* node) {
@@ -223,39 +265,14 @@ void IRGenerator::visit(ContinueStmt* node) {
 
 
 void IRGenerator::visit(IfStmt* node) {
-    BasicBlock* then_block = create_block();
-    BasicBlock* merge_block = create_block();
-    BasicBlock* else_block = node->elseS ? create_block() : nullptr;
+    // 为整个 if-else if-else 链创建一个唯一的、最终的合并块
+    BasicBlock* merge_block = create_block(".L");
+    Operand merge_label = { Operand::LABEL, merge_block->label };
 
-    Operand false_dest_label;
-    false_dest_label.kind = Operand::LABEL;
-    false_dest_label.name = else_block ? else_block->label : merge_block->label;
+    // 调用辅助函数来生成整个链的IR
+    generate_if_chain(node, merge_label);
 
-    node->cond->accept(this);
-
-    current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, false_dest_label });
-
-    add_block(then_block);
-    node->thenS->accept(this);
-
-    // 只有当当前块没有被终结时，才添加跳向 merge_block 的 JUMP
-    if (current_block && (current_block->instructions.empty() ||
-        (current_block->instructions.back().opcode != Instruction::RET &&
-            current_block->instructions.back().opcode != Instruction::JUMP))) {
-        current_block->instructions.push_back({ Instruction::JUMP, {}, {Operand::LABEL, merge_block->label} });
-    }
-
-    if (else_block) {
-        add_block(else_block);
-        node->elseS->accept(this);
-        // 同样，检查 else 块是否已经被终结
-        if (current_block && (current_block->instructions.empty() ||
-            (current_block->instructions.back().opcode != Instruction::RET &&
-                current_block->instructions.back().opcode != Instruction::JUMP))) {
-            current_block->instructions.push_back({ Instruction::JUMP, {}, {Operand::LABEL, merge_block->label} });
-        }
-    }
-
+    // 最后，添加这个最终的合并块，后续代码将从这里开始
     add_block(merge_block);
 }
 

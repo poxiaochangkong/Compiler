@@ -71,6 +71,7 @@ private:
     Operand new_label_op();  // 创建一个新的标签操作数，用于跳转指令
     BasicBlock* create_block(const std::string& prefix = ".L"); // 创建一个新的、独立的基本块
     void add_block(BasicBlock* bb); // 将一个块添加到当前函数，并设为当前活动块
+    void generate_if_chain(IfStmt* node, Operand merge_label);
 
     // 将 AST 的二元操作符枚举映射到 IR 的 OpCode 枚举
     Instruction::OpCode map_bin_op(BinOp op);
