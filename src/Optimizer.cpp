@@ -176,27 +176,27 @@ bool Optimizer::run_constant_propagation(ModuleIR& module) {
 
                 // --- 【核心修改：分支简化，适配 JUMP_IF_*】 ---
                 // 2.2 如果是条件跳转，且条件是常量，则简化它
-                if ((instr.opcode == Instruction::JUMP_IF_ZERO || instr.opcode == Instruction::JUMP_IF_NZERO) && instr.arg1.kind == Operand::CONST) {
-                    bool condition_is_zero = (instr.arg1.value == 0);
-                    bool jump_on_zero = (instr.opcode == Instruction::JUMP_IF_ZERO);
+                //if ((instr.opcode == Instruction::JUMP_IF_ZERO || instr.opcode == Instruction::JUMP_IF_NZERO) && instr.arg1.kind == Operand::CONST) {
+                //    bool condition_is_zero = (instr.arg1.value == 0);
+                //    bool jump_on_zero = (instr.opcode == Instruction::JUMP_IF_ZERO);
 
-                    // 判断跳转是否总是发生
-                    if (condition_is_zero == jump_on_zero) {
-                        // 条件满足，总是跳转：转换为无条件 JUMP
-                        instr.opcode = Instruction::JUMP;
-                        // 假设跳转目标在 result 操作数中
-                        instr.arg1 = instr.result;
-                        instr.result.kind = Operand::NONE;
-                        instr.arg2.kind = Operand::NONE;
-                        changed_at_all = true;
-                    }
-                    else {
-                        // 条件不满足，永不跳转：直接移除该指令
-                        it = block.instructions.erase(it);
-                        instruction_removed = true;
-                        changed_at_all = true;
-                    }
-                }
+                //    // 判断跳转是否总是发生
+                //    if (condition_is_zero == jump_on_zero) {
+                //        // 条件满足，总是跳转：转换为无条件 JUMP
+                //        instr.opcode = Instruction::JUMP;
+                //        // 假设跳转目标在 result 操作数中
+                //        instr.arg1 = instr.result;
+                //        instr.result.kind = Operand::NONE;
+                //        instr.arg2.kind = Operand::NONE;
+                //        changed_at_all = true;
+                //    }
+                //    else {
+                //        // 条件不满足，永不跳转：直接移除该指令
+                //        it = block.instructions.erase(it);
+                //        instruction_removed = true;
+                //        changed_at_all = true;
+                //    }
+                //}
                 // --- 【修改结束】 ---
 
                 // 2.3 更新当前块内的常量状态 (KILL & GEN)
