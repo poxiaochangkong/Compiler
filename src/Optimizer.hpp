@@ -2,6 +2,9 @@
 #define OPTIMIZER_HPP
 
 #include "IRGenerator.hpp"
+#include "ConstantPropagationAnalyzer.hpp"
+// 【新增】包含可用表达式分析器的头文件
+#include "AvailableExpressionsAnalyzer.hpp" 
 
 class Optimizer {
 public:
@@ -9,7 +12,8 @@ public:
 
 private:
     // --- 各个优化阶段的私有实现 ---
-    void run_constant_folding(ModuleIR& module);
+    bool run_unreachable_code_elimination(ModuleIR& module);
+    bool run_constant_propagation(ModuleIR& module);
     bool run_algebraic_simplification(ModuleIR& module);
     bool run_common_subexpression_elimination(ModuleIR& module);
     bool run_copy_propagation(ModuleIR& module);
