@@ -340,45 +340,71 @@ void IRGenerator::visit(VarExpr* node) {
 void IRGenerator::visit(BinaryExpr* node) {
     if (node->op == BinOp::LAnd || node->op == BinOp::LOr) {
         Operand res = new_temp();
-        BasicBlock* rhs_block = create_block();
-        BasicBlock* set_true_block = create_block();
-        BasicBlock* set_false_block = create_block();
+        BasicBlock* true_block = create_block();
+        BasicBlock* false_block = create_block();
         BasicBlock* end_block = create_block();
 
-        Operand rhs_label; rhs_label.kind = Operand::LABEL; rhs_label.name = rhs_block->label;
-        Operand set_true_label; set_true_label.kind = Operand::LABEL; set_true_label.name = set_true_block->label;
-        Operand set_false_label; set_false_label.kind = Operand::LABEL; set_false_label.name = set_false_block->label;
-        Operand end_label; end_label.kind = Operand::LABEL; end_label.name = end_block->label;
-
-        node->lhs->accept(this);
-        Operand lhs_val = m_result_op;
+        Operand true_label = { Operand::LABEL, true_block->label };
+        Operand false_label = { Operand::LABEL, false_block->label };
+        Operand end_label = { Operand::LABEL, end_block->label };
 
         if (node->op == BinOp::LAnd) {
-            current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, lhs_val, set_false_label });
+            // --- LHS of && ---
+            node->lhs->accept(this);
+            // 如果 lhs 为假, 短路并跳转到 false 块. 当前块结束.
+            current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, false_label });
+
+            // --- RHS of && (LHS为真的fall-through路径) ---
+            add_block(create_block()); // 为RHS创建一个新的块
+            node->rhs->accept(this);
+            // 如果 rhs 为假, 跳转到 false 块. 当前块结束.
+            current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, m_result_op, false_label });
+            // 否则 (rhs为真), fall-through到true块.
+
+            // --- TRUE case ---
+            add_block(true_block);
+            current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 1} });
+            current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
+
         }
         else { // BinOp::LOr
-            current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, lhs_val, set_true_label });
+            // --- LHS of || ---
+            node->lhs->accept(this);
+            // 如果 lhs 为真, 短路并跳转到 true 块. 当前块结束.
+            current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, m_result_op, true_label });
+
+            // --- RHS of || (LHS为假的fall-through路径) ---
+            add_block(create_block()); // 为RHS创建一个新的块
+            node->rhs->accept(this);
+            // 如果 rhs 为真, 跳转到 true 块. 当前块结束.
+            current_block->instructions.push_back({ Instruction::JUMP_IF_NZERO, {}, m_result_op, true_label });
+            // 否则 (rhs为假), fall-through到false块.
+
+            // --- FALSE case ---
+            add_block(false_block);
+            current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 0} });
+            current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
         }
-        add_block(rhs_block);
 
-        node->rhs->accept(this);
-        Operand rhs_val = m_result_op;
-        current_block->instructions.push_back({ Instruction::JUMP_IF_ZERO, {}, rhs_val, set_false_label });
-        current_block->instructions.push_back({ Instruction::JUMP, {}, set_true_label });
+        // --- TRUE block (for LOr) or FALSE block (for LAnd) ---
+        if (node->op == BinOp::LAnd) {
+            add_block(false_block);
+            current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 0} });
+            current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
+        }
+        else { // BinOp::LOr
+            add_block(true_block);
+            current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 1} });
+            current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
+        }
 
-        add_block(set_true_block);
-        current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 1} });
-        current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
-
-        add_block(set_false_block);
-        current_block->instructions.push_back({ Instruction::ASSIGN, res, {Operand::CONST, "", 0, 0} });
-        current_block->instructions.push_back({ Instruction::JUMP, {}, end_label });
-
+        // --- End block (merge point) ---
         add_block(end_block);
         m_result_op = res;
         return;
     }
 
+    // 对于非逻辑运算，行为保持不变
     node->lhs->accept(this);
     Operand lhs_op = m_result_op;
 

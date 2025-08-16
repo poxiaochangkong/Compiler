@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <queue>
 #include <sstream>
 #include <algorithm> // For std::reverse and std::max
 
@@ -43,14 +44,15 @@ void Optimizer::optimize(ModuleIR& module) {
 
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
-        // 【新增】将常量传播加入优化循环
+        // 【修改】在循环开始时调用不可达代码消除
+        bool uce_changed = run_unreachable_code_elimination(module);
         bool cp_prop_changed = run_constant_propagation(module);
         bool alg_changed = run_algebraic_simplification(module);
         bool cse_changed = run_common_subexpression_elimination(module);
         bool copy_prop_changed = run_copy_propagation(module);
         bool dce_changed = run_dead_code_elimination(module);
 
-        changed_in_cycle = cp_prop_changed || alg_changed || cse_changed || copy_prop_changed || dce_changed;
+        changed_in_cycle = uce_changed || cp_prop_changed || alg_changed || cse_changed || copy_prop_changed || dce_changed;
     }
 }
 
@@ -79,6 +81,65 @@ Operand Optimizer::new_temp() {
 
 
 // --- 其他优化阶段 (全部保持不变) ---
+bool Optimizer::run_unreachable_code_elimination(ModuleIR& module) {
+    bool changed_at_all = false;
+    for (auto& func : module.functions) {
+        if (func.blocks.empty()) continue;
+
+        // 1. 构建CFG以获取块之间的连接关系
+        ControlFlowGraph cfg(func);
+        const auto& nodes = cfg.get_nodes();
+        if (nodes.empty()) continue;
+
+        // 创建一个从 BasicBlock* 到 CFGNode* 的映射，方便查找后继
+        std::unordered_map<const BasicBlock*, const CFGNode*> block_to_node_map;
+        for (const auto& node : nodes) {
+            block_to_node_map[node.block] = &node;
+        }
+
+        // 2. 使用广度优先搜索（BFS）找出所有可达块
+        std::unordered_set<const BasicBlock*> reachable_blocks;
+        std::queue<const BasicBlock*> worklist;
+
+        // 从入口块开始
+        const BasicBlock* entry_block = &func.blocks.front();
+        worklist.push(entry_block);
+        reachable_blocks.insert(entry_block);
+
+        while (!worklist.empty()) {
+            const BasicBlock* current_block = worklist.front();
+            worklist.pop();
+
+            const CFGNode* current_node = block_to_node_map.at(current_block);
+            for (const auto* successor_node : current_node->succs) {
+                const BasicBlock* successor_block = successor_node->block;
+                // 如果后继节点没被访问过，就加入队列和可达集合
+                if (reachable_blocks.find(successor_block) == reachable_blocks.end()) {
+                    reachable_blocks.insert(successor_block);
+                    worklist.push(successor_block);
+                }
+            }
+        }
+
+        // 3. 重建函数的基本块列表，只保留可达的块
+        std::vector<BasicBlock> new_blocks;
+        for (const auto& block : func.blocks) {
+            if (reachable_blocks.count(&block)) {
+                new_blocks.push_back(block);
+            }
+            else {
+                changed_at_all = true; // 发现了要删除的块
+            }
+        }
+
+        // 如果有变化，则更新函数的基本块列表
+        if (changed_at_all) {
+            func.blocks = std::move(new_blocks);
+        }
+    }
+    return changed_at_all;
+}
+
 bool Optimizer::run_constant_propagation(ModuleIR& module) {
     bool changed_at_all = false;
     for (auto& func : module.functions) {
