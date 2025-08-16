@@ -4,7 +4,7 @@
 #include "IRGenerator.hpp"
 // 【新增】包含我们新创建的分析器头文件
 #include "ConstantPropagationAnalyzer.hpp"
-
+#include "AvailableExpressionsAnalyzer.hpp"
 class Optimizer {
 public:
     void optimize(ModuleIR& module);
