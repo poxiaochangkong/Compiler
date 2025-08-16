@@ -145,23 +145,23 @@ bool Optimizer::run_constant_propagation(ModuleIR& module) {
     for (auto& func : module.functions) {
         if (func.blocks.empty()) continue;
 
-        // 1. 构建CFG并运行数据流分析
+        // 1. 构建CFG
         ControlFlowGraph cfg(func);
+
+        // 2. 运行分析
         ConstantPropagationAnalyzer analyzer;
         analyzer.run(func, cfg);
+
+        // 3. 获取分析结果
         const auto& in_states = analyzer.get_in_states();
 
-        // 2. 根据分析结果进行代码转换
+        // 4. 根据分析结果进行代码转换
         for (auto& block : func.blocks) {
-            // 获取该块入口处的常量信息
+            // 获取该块入口处的常量信息，并用它来维护块内的当前状态
             ConstState current_state = in_states.at(&block);
 
-            // 使用迭代器遍历指令，因为我们可能会删除指令
-            for (auto it = block.instructions.begin(); it != block.instructions.end(); /* no increment here */) {
-                auto& instr = *it;
-                bool instruction_removed = false;
-
-                // 2.1 替换源操作数为常量
+            for (auto& instr : block.instructions) {
+                // 4.1 替换源操作数
                 Operand* operands_to_check[] = { &instr.arg1, &instr.arg2 };
                 for (auto* op_ptr : operands_to_check) {
                     if (is_variable_or_temp(*op_ptr)) {
@@ -174,89 +174,52 @@ bool Optimizer::run_constant_propagation(ModuleIR& module) {
                     }
                 }
 
-                // --- 【核心修改：分支简化，适配 JUMP_IF_*】 ---
-                // 2.2 如果是条件跳转，且条件是常量，则简化它
-                if ((instr.opcode == Instruction::JUMP_IF_ZERO || instr.opcode == Instruction::JUMP_IF_NZERO) && instr.arg1.kind == Operand::CONST) {
-                    bool condition_is_zero = (instr.arg1.value == 0);
-                    bool jump_on_zero = (instr.opcode == Instruction::JUMP_IF_ZERO);
+                // 4.2 更新当前块内的常量状态 (KILL & GEN)
+                if (is_variable_or_temp(instr.result)) {
+                    std::string dest_id = get_operand_id(instr.result);
+                    current_state.erase(dest_id); // KILL: 赋值让旧状态失效
 
-                    // 判断跳转是否总是发生
-                    if (condition_is_zero == jump_on_zero) {
-                        // 条件满足，总是跳转：转换为无条件 JUMP
-                        instr.opcode = Instruction::JUMP;
-                        // 假设跳转目标在 result 操作数中
-                        instr.arg1 = instr.result;
-                        instr.result.kind = Operand::NONE;
-                        instr.arg2.kind = Operand::NONE;
-                        changed_at_all = true;
-                    }
-                    else {
-                        // 条件不满足，永不跳转：直接移除该指令
-                        it = block.instructions.erase(it);
-                        instruction_removed = true;
-                        changed_at_all = true;
-                    }
-                }
-                // --- 【修改结束】 ---
-
-                // 2.3 更新当前块内的常量状态 (KILL & GEN)
-                // 仅在指令未被移除时执行
-                if (!instruction_removed) {
-                    if (is_variable_or_temp(instr.result)) {
-                        std::string dest_id = get_operand_id(instr.result);
-                        current_state.erase(dest_id); // KILL: 任何赋值都会让旧的常量状态失效
-
-                        // GEN: 如果是常量赋值或可折叠的指令，生成新的常量信息
-                        if (instr.arg1.kind == Operand::CONST) {
-                            if (instr.opcode == Instruction::ASSIGN) {
-                                current_state[dest_id] = instr.arg1.value;
+                    // GEN: 如果是常量赋值或可折叠的指令，生成新的常量信息
+                    if (instr.arg1.kind == Operand::CONST) {
+                        if (instr.opcode == Instruction::ASSIGN) {
+                            current_state[dest_id] = instr.arg1.value;
+                        }
+                        else if (instr.arg2.kind == Operand::CONST) {
+                            // 此时源操作数已经被替换，可以进行常量折叠
+                            int val1 = instr.arg1.value;
+                            int val2 = instr.arg2.value;
+                            int result = 0;
+                            bool folded = true;
+                            switch (instr.opcode) {
+                            case Instruction::ADD: result = val1 + val2; break;
+                            case Instruction::SUB: result = val1 - val2; break;
+                            case Instruction::MUL: result = val1 * val2; break;
+                            case Instruction::DIV: if (val2 == 0) { folded = false; break; } result = val1 / val2; break;
+                            case Instruction::MOD: if (val2 == 0) { folded = false; break; } result = val1 % val2; break;
+                            case Instruction::EQ:  result = (val1 == val2); break;
+                            case Instruction::NEQ: result = (val1 != val2); break;
+                            case Instruction::LT:  result = (val1 < val2);  break;
+                            case Instruction::GT:  result = (val1 > val2);  break;
+                            case Instruction::LE:  result = (val1 <= val2); break;
+                            case Instruction::GE:  result = (val1 >= val2); break;
+                            default: folded = false; break;
                             }
-                            else if (instr.arg2.kind == Operand::CONST) {
-                                // 源操作数已被替换，可以进行常量折叠
-                                int val1 = instr.arg1.value;
-                                int val2 = instr.arg2.value;
-                                int result_val = 0;
-                                bool folded = true;
-                                switch (instr.opcode) {
-                                case Instruction::ADD: result_val = val1 + val2; break;
-                                case Instruction::SUB: result_val = val1 - val2; break;
-                                case Instruction::MUL: result_val = val1 * val2; break;
-                                case Instruction::DIV: if (val2 == 0) { folded = false; }
-                                                     else { result_val = val1 / val2; } break;
-                                case Instruction::MOD: if (val2 == 0) { folded = false; }
-                                                     else { result_val = val1 % val2; } break;
-                                case Instruction::EQ:  result_val = (val1 == val2); break;
-                                case Instruction::NEQ: result_val = (val1 != val2); break;
-                                case Instruction::LT:  result_val = (val1 < val2);  break;
-                                case Instruction::GT:  result_val = (val1 > val2);  break;
-                                case Instruction::LE:  result_val = (val1 <= val2); break;
-                                case Instruction::GE:  result_val = (val1 >= val2); break;
-                                default: folded = false; break;
-                                }
-                                if (folded) {
-                                    current_state[dest_id] = result_val;
-                                    // 进一步优化：直接将指令替换为 a = Constant
-                                    instr.opcode = Instruction::ASSIGN;
-                                    instr.arg1.kind = Operand::CONST;
-                                    instr.arg1.value = result_val;
-                                    instr.arg2.kind = Operand::NONE;
-                                    changed_at_all = true;
-                                }
+                            if (folded) {
+                                current_state[dest_id] = result;
+                                // 进一步优化：直接将指令替换为 a = C
+                                instr.opcode = Instruction::ASSIGN;
+                                instr.arg1.value = result;
+                                instr.arg2.kind = Operand::NONE;
+                                changed_at_all = true;
                             }
                         }
                     }
-                }
-
-                // 在循环末尾安全地推进迭代器
-                if (!instruction_removed) {
-                    ++it;
                 }
             }
         }
     }
     return changed_at_all;
 }
-
 
 bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
     // ... (代码无变化，保持原样)
