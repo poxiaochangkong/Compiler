@@ -17,22 +17,21 @@ static bool is_variable_or_temp(const Operand& op) {
 static std::string get_operand_id(const Operand& op) {
     if (op.kind == Operand::VAR) return op.name;
     if (op.kind == Operand::TEMP) return "t" + std::to_string(op.id);
+    // 【修复】增加对常量操作数的处理
+    if (op.kind == Operand::CONST) return std::to_string(op.value);
     return "";
 }
 
 static std::string get_expr_id(const Instruction& instr) {
     std::stringstream ss;
-    ss << instr.opcode;
-    if (is_variable_or_temp(instr.arg1)) ss << " " << get_operand_id(instr.arg1);
-    else if (instr.arg1.kind == Operand::CONST) ss << " " << instr.arg1.value;
+    std::string op1_id = get_operand_id(instr.arg1);
+    std::string op2_id = get_operand_id(instr.arg2);
+    // 对操作数排序，确保 a+b 和 b+a 有相同的ID
+    if (op1_id > op2_id) std::swap(op1_id, op2_id);
 
-    if (instr.arg2.kind != Operand::NONE) {
-        if (is_variable_or_temp(instr.arg2)) ss << " " << get_operand_id(instr.arg2);
-        else if (instr.arg2.kind == Operand::CONST) ss << " " << instr.arg2.value;
-    }
+    ss << instr.opcode << " " << op1_id << " " << op2_id;
     return ss.str();
 }
-
 
 // --- 主协调函数 (保持不变) ---
 
@@ -208,45 +207,55 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
 }
 
 bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
-    // ... (代码无变化，保持原样)
-    bool changed_this_pass = false;
+    bool changed_at_all = false;
     for (auto& func : module.functions) {
+        if (func.blocks.empty()) continue;
+
+        // 1. 分析阶段：运行增强后的分析器
+        ControlFlowGraph cfg(func);
+        AvailableExpressionsAnalyzer analyzer;
+        analyzer.run(func, cfg);
+        const auto& in_states = analyzer.get_in_states();
+
+        // 2. 转换阶段
         for (auto& block : func.blocks) {
-            std::unordered_map<std::string, Operand> available_exprs;
-            std::unordered_map<std::string, std::pair<std::string, std::string>> expr_operands;
+            // 获取块入口处可用的表达式及其结果
+            AvailableExprsMap available_now = in_states.at(&block);
+
             for (auto& instr : block.instructions) {
+                // a. 检查当前指令的表达式是否已经可用
                 if (instr.opcode >= Instruction::ADD && instr.opcode <= Instruction::GE) {
                     std::string expr_id = get_expr_id(instr);
-                    auto it = available_exprs.find(expr_id);
-                    if (it != available_exprs.end()) {
+                    if (available_now.count(expr_id)) {
+                        // 如果可用，直接替换为赋值指令
+                        Operand original_result = available_now.at(expr_id);
                         instr.opcode = Instruction::ASSIGN;
-                        instr.arg1 = it->second;
+                        instr.arg1 = original_result;
                         instr.arg2.kind = Operand::NONE;
-                        changed_this_pass = true;
-                    }
-                    else {
-                        available_exprs[expr_id] = instr.result;
-                        expr_operands[expr_id] = { get_operand_id(instr.arg1), get_operand_id(instr.arg2) };
+                        changed_at_all = true;
                     }
                 }
+
+                // b. 更新当前点（块内）的可用表达式信息 (KILL & GEN)
                 if (is_variable_or_temp(instr.result)) {
-                    std::string result_id = get_operand_id(instr.result);
-                    for (auto it = available_exprs.begin(); it != available_exprs.end(); ) {
-                        auto operands_it = expr_operands.find(it->first);
-                        if (operands_it != expr_operands.end()) {
-                            if (operands_it->second.first == result_id || operands_it->second.second == result_id) {
-                                expr_operands.erase(operands_it);
-                                it = available_exprs.erase(it);
-                                continue;
-                            }
+                    std::string dest_id = get_operand_id(instr.result);
+                    std::vector<std::string> exprs_to_kill;
+                    for (auto const& [expr, op] : available_now) {
+                        if (get_operand_id(op) == dest_id || expr.find(dest_id) != std::string::npos) {
+                            exprs_to_kill.push_back(expr);
                         }
-                        ++it;
                     }
+                    for (const auto& expr : exprs_to_kill) {
+                        available_now.erase(expr);
+                    }
+                }
+                if (instr.opcode >= Instruction::ADD && instr.opcode <= Instruction::GE) {
+                    available_now[get_expr_id(instr)] = instr.result;
                 }
             }
         }
     }
-    return changed_this_pass;
+    return changed_at_all;
 }
 
 bool Optimizer::run_copy_propagation(ModuleIR& module) {
