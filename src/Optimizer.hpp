@@ -12,6 +12,7 @@ public:
 
 private:
     // --- 各个优化阶段的私有实现 ---
+    bool run_unreachable_code_elimination(ModuleIR& module);
     bool run_constant_propagation(ModuleIR& module);
     bool run_algebraic_simplification(ModuleIR& module);
     bool run_common_subexpression_elimination(ModuleIR& module);
