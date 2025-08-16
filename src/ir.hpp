@@ -15,6 +15,26 @@ struct Operand {
     std::string name; // 用于 VAR
     int id;           // 用于 TEMP 和 LABEL
     int value;        // 用于 CONST
+    bool operator==(const Operand& other) const {
+        if (kind != other.kind) {
+            return false;
+        }
+        switch (kind) {
+        case CONST:
+            return value == other.value;
+        case VAR:
+            return name == other.name;
+        case TEMP:
+            return id == other.id;
+        case LABEL:
+            // 假设标签的唯一性由其名称保证
+            return name == other.name;
+        case NONE:
+            return true; // 两个NONE类型的操作数总是相等的
+        default:
+            return false;
+        }
+    }
 };
 
 // 三地址码指令
@@ -47,6 +67,7 @@ struct Instruction {
         JUMP_IF_NZERO,  // 如果 arg1 的值不为 0 则跳转
         LABEL
     };
+
 
     OpCode opcode;
     Operand result;

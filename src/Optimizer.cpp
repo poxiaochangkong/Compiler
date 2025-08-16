@@ -17,6 +17,8 @@ static bool is_variable_or_temp(const Operand& op) {
 static std::string get_operand_id(const Operand& op) {
     if (op.kind == Operand::VAR) return op.name;
     if (op.kind == Operand::TEMP) return "t" + std::to_string(op.id);
+    // 【修复】增加对常量操作数的处理
+    if (op.kind == Operand::CONST) return std::to_string(op.value);
     return "";
 }
 
@@ -209,57 +211,46 @@ bool Optimizer::run_common_subexpression_elimination(ModuleIR& module) {
     for (auto& func : module.functions) {
         if (func.blocks.empty()) continue;
 
-        // 1. 分析阶段：运行可用表达式分析器
+        // 1. 分析阶段：运行增强后的分析器
         ControlFlowGraph cfg(func);
         AvailableExpressionsAnalyzer analyzer;
         analyzer.run(func, cfg);
         const auto& in_states = analyzer.get_in_states();
 
         // 2. 转换阶段
-        //    这个map用于在遍历过程中，追踪表达式的计算结果被存放在哪个操作数里
-        std::unordered_map<std::string, Operand> expr_result_map;
-
         for (auto& block : func.blocks) {
-            // 获取在此块入口处就可用的表达式集合
-            const auto& available_on_entry = in_states.at(&block);
+            // 获取块入口处可用的表达式及其结果
+            AvailableExprsMap available_now = in_states.at(&block);
 
-            // 遍历块内指令
             for (auto& instr : block.instructions) {
-                // a. 检查当前指令是否是一个可以被消除的表达式
+                // a. 检查当前指令的表达式是否已经可用
                 if (instr.opcode >= Instruction::ADD && instr.opcode <= Instruction::GE) {
                     std::string expr_id = get_expr_id(instr);
-
-                    // 如果表达式在块入口可用，并且我们已经记录了它的计算结果
-                    if (available_on_entry.count(expr_id) && expr_result_map.count(expr_id)) {
-                        // 找到了一个全局公共子表达式！
-                        Operand original_result = expr_result_map.at(expr_id);
-
-                        // 将当前指令替换为简单的赋值
+                    if (available_now.count(expr_id)) {
+                        // 如果可用，直接替换为赋值指令
+                        Operand original_result = available_now.at(expr_id);
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg1 = original_result;
                         instr.arg2.kind = Operand::NONE;
                         changed_at_all = true;
                     }
-                    else {
-                        // 这是一个新的计算，记录下它的结果
-                        expr_result_map[expr_id] = instr.result;
-                    }
                 }
 
-                // b. 失效(Kill)逻辑：如果指令修改了一个变量，
-                //    那么所有使用这个变量作为操作数的表达式都变得不再可用。
+                // b. 更新当前点（块内）的可用表达式信息 (KILL & GEN)
                 if (is_variable_or_temp(instr.result)) {
-                    std::string result_id = get_operand_id(instr.result);
-                    for (auto it = expr_result_map.begin(); it != expr_result_map.end(); ) {
-                        // 检查表达式的操作数是否包含被修改的变量
-                        // 注意：这是一个简化的检查，它假定表达式字符串包含操作数ID
-                        if (it->first.find(result_id) != std::string::npos) {
-                            it = expr_result_map.erase(it);
-                        }
-                        else {
-                            ++it;
+                    std::string dest_id = get_operand_id(instr.result);
+                    std::vector<std::string> exprs_to_kill;
+                    for (auto const& [expr, op] : available_now) {
+                        if (get_operand_id(op) == dest_id || expr.find(dest_id) != std::string::npos) {
+                            exprs_to_kill.push_back(expr);
                         }
                     }
+                    for (const auto& expr : exprs_to_kill) {
+                        available_now.erase(expr);
+                    }
+                }
+                if (instr.opcode >= Instruction::ADD && instr.opcode <= Instruction::GE) {
+                    available_now[get_expr_id(instr)] = instr.result;
                 }
             }
         }
