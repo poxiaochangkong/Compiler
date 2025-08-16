@@ -121,7 +121,13 @@ void print_ir(const ModuleIR& module) {
 }
 
 int main(int argc, char** argv) {
-    
+    if (argc > 1) {
+        yyin = fopen(argv[1], "r");
+        if (!yyin) {
+            perror("Error opening file");
+            return 1;
+        }
+    }
 
     /* yydebug = 1;
      yy_flex_debug = 1;*/
@@ -133,9 +139,9 @@ int main(int argc, char** argv) {
 
         SemanticAnalyzer analyzer;
         analyzer.analyze(g_root);
-        //std::cout << "Semantic analysis finished." << std::endl;
+        //std::cout << "Semantic analysis finished." << std::endl;/*
 
-        //std::cout << "\n--- Starting IR Generation ---" << std::endl;
+        //std::cout << "\n--- Starting IR Generation ---" << std::endl;*/
         IRGenerator ir_gen;
         ModuleIR ir_module = ir_gen.generate(g_root);
         //std::cout << "--- IR Generation Finished ---" << std::endl;

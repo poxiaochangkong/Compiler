@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(Compiler)
 
-# 使用 C++11
+# 使用 C++17
 set(CMAKE_CXX_STANDARD 17)
 
 # 找到 Flex 和 Bison
@@ -38,6 +38,12 @@ add_executable(Compiler
   src/CodeGenerator.cpp
   src/Optimizer.cpp
   src/SpillEverythingAllocator.cpp
+  src/ControlFlowGraph.cpp
+  src/LivenessAnalyzer.cpp
+  src/GreedyAllocator.cpp
+  src/SmartSpillAllocator.cpp
+  src/ConstantPropagationAnalyzer.cpp
+  src/AvailableExpressionsAnalyzer.cpp
   src/ast.hpp
   src/lexer.l
   src/parser.y
@@ -48,6 +54,12 @@ add_executable(Compiler
   src/Optimizer.hpp
   src/RegisterAllocator.hpp
   src/SpillEverythingAllocator.hpp
+  src/ControlFlowGraph.hpp
+  src/LivenessAnalyzer.hpp
+  src/GreedyAllocator.hpp
+  src/SmartSpillAllocator.hpp
+  src/ConstantPropagationAnalyzer.hpp
+  src/AvailableExpressionsAnalyzer.hpp
 )
 
 # 5) 让编译器能找到 parser.tab.h

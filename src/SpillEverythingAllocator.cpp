@@ -12,6 +12,22 @@ std::string SpillEverythingAllocator::offsetToString(int offset) {
     return std::to_string(offset) + "(fp)";
 }
 
+std::string SpillEverythingAllocator::getEpilogueLabel() const {
+    return ".L_epilogue_" + m_func_name;
+}
+
+std::string SpillEverythingAllocator::getEpilogue() {
+    std::stringstream ss;
+    ss << getEpilogueLabel() << ":\n"; // 使用统一的标签
+    if (m_total_stack_size > 0) {
+        ss << "  lw ra, " << offsetToString(m_stack_offsets["<ra>"]) << "\n";
+        ss << "  lw fp, " << offsetToString(m_stack_offsets["<old_fp>"]) << "\n";
+        ss << "  addi sp, sp, " << m_total_stack_size << "\n";
+    }
+    ss << "  ret\n";
+    return ss.str();
+}
+
 void SpillEverythingAllocator::prepare(const FunctionIR& func) {
     m_func_name = func.name;
     m_stack_offsets.clear();
@@ -109,16 +125,7 @@ std::string SpillEverythingAllocator::getPrologue() {
     return ss.str();
 }
 
-std::string SpillEverythingAllocator::getEpilogue() {
-    std::stringstream ss;
-    if (m_total_stack_size > 0) {
-        ss << "  lw ra, " << offsetToString(m_stack_offsets["<ra>"]) << "\n";
-        ss << "  lw fp, " << offsetToString(m_stack_offsets["<old_fp>"]) << "\n";
-        ss << "  addi sp, sp, " << m_total_stack_size << "\n";
-    }
-    ss << "  ret\n";
-    return ss.str();
-}
+
 
 std::string SpillEverythingAllocator::loadOperand(const Operand& op, const std::string& destReg) {
     std::stringstream ss;
