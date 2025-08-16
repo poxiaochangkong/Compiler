@@ -121,13 +121,13 @@ void print_ir(const ModuleIR& module) {
 }
 
 int main(int argc, char** argv) {
-    if (argc > 1) {
+    /*if (argc > 1) {
         yyin = fopen(argv[1], "r");
         if (!yyin) {
             perror("Error opening file");
             return 1;
         }
-    }
+    }*/
 
     /* yydebug = 1;
      yy_flex_debug = 1;*/
