@@ -445,6 +445,10 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
                         case Instruction::ASSIGN:
                             is_dead = true;
                             break;
+                        // 增加CALL指令。基于“函数是纯的”这一假设，
+                        // 如果返回值没被使用，调用本身就是死代码。
+                        case Instruction::CALL:
+                            is_dead = true;
                         default: // CALL, RET, JUMP等有副作用的指令不能被消除
                             is_dead = false;
                             break;
