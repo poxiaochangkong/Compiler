@@ -39,20 +39,29 @@ static std::string get_expr_id(const Instruction& instr) {
 void Optimizer::optimize(ModuleIR& module) {
     initialize_temp_counter(module);
 
-    // 尾递归消除通常只做一次，且在循环优化前做比较好
+    // 1. 结构性大改动最先进行
+    // 尾递归消除将递归变为循环，彻底改变控制流图，应该在所有基于流的分析之前完成。
     run_tail_recursion_elimination(module);
 
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
-        // 【修改】在循环开始时调用不可达代码消除
-        bool uce_changed = run_unreachable_code_elimination(module);
-        bool cp_prop_changed = run_constant_propagation(module);
-        bool alg_changed = run_algebraic_simplification(module);
-        bool cse_changed = run_common_subexpression_elimination(module);
-        bool copy_prop_changed = run_copy_propagation(module);
-        bool dce_changed = run_dead_code_elimination(module);
+        bool changed_this_pass = false;
 
-        changed_in_cycle = uce_changed || cp_prop_changed || alg_changed || cse_changed || copy_prop_changed || dce_changed;
+        // 2. 清理无法访问的代码，避免后续分析做无用功
+        changed_this_pass |= run_unreachable_code_elimination(module);
+
+        // 3. 核心简化阶段：传播值，然后化简表达式
+        // 这几个优化协同作用非常强，应该放在一起
+        changed_this_pass |= run_constant_propagation(module);
+        changed_this_pass |= run_copy_propagation(module); // 副本传播紧跟常量传播，它们都是值传播
+        changed_this_pass |= run_algebraic_simplification(module); // 代数化简利用上面传播来的常量
+        changed_this_pass |= run_common_subexpression_elimination(module); // 在化简后的代码中寻找公共子表达式
+
+        // 4. 最终清理阶段：移除所有因简化而产生的无用代码
+        // 在一轮简化的最后进行，效果最好
+        changed_this_pass |= run_dead_code_elimination(module);
+
+        changed_in_cycle = changed_this_pass;
     }
 }
 
