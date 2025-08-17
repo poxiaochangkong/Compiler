@@ -430,7 +430,6 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
         if (func.blocks.empty()) continue;
 
         // 1. 构建CFG并运行活跃变量分析
-        // 这个开销只在DCE内部，不会影响其他优化
         ControlFlowGraph cfg(func);
         cfg.run_liveness_analysis();
 
@@ -442,12 +441,9 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
 
         // 3. 遍历函数中的每个基本块，并利用分析结果进行DCE
         for (auto& block : func.blocks) {
-            // 获取当前块的活跃变量分析结果
             const CFGNode* current_node = block_to_node.at(&block);
-            // 从块的出口处的活跃变量开始，反向推导
             std::set<std::string> live_now = current_node->live_out;
 
-            // 我们需要从后往前遍历并可能删除指令，所以使用一个临时的vector
             std::vector<Instruction> new_instructions;
             new_instructions.reserve(block.instructions.size());
 
@@ -457,8 +453,7 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
 
                 if (is_variable_or_temp(instr.result)) {
                     std::string result_id = get_operand_id(instr.result);
-                    // 核心判断：如果一个指令的结果不在当前活跃变量集合中，
-                    // 并且该指令没有副作用（如函数调用），则为死代码。
+                    // 核心判断：如果一个指令的结果不在当前活跃变量集合中，则为死代码。
                     if (live_now.find(result_id) == live_now.end()) {
                         switch (instr.opcode) {
                         case Instruction::ADD: case Instruction::SUB: case Instruction::MUL:
@@ -466,13 +461,10 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
                         case Instruction::EQ:  case Instruction::NEQ: case Instruction::LT:
                         case Instruction::GT:  case Instruction::LE:  case Instruction::GE:
                         case Instruction::ASSIGN:
+                        case Instruction::CALL: // 【已按要求修改】移除对main函数的特殊判断
                             is_dead = true;
                             break;
-                        // 增加CALL指令。基于“函数是纯的”这一假设，
-                        // 如果返回值没被使用，调用本身就是死代码。
-                        case Instruction::CALL:
-                            is_dead = true;
-                        default: // CALL, RET, JUMP等有副作用的指令不能被消除
+                        default:
                             is_dead = false;
                             break;
                         }
@@ -481,6 +473,22 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
 
                 if (is_dead) {
                     changed_at_all = true;
+
+                    // 【关键修复】
+                    // 如果被删除的指令是CALL，我们必须同时跳过为它服务的PARAM指令。
+                    if (instr.opcode == Instruction::CALL) {
+                        // 假设参数数量存储在 arg2.value 中。
+                        // 你需要根据你的Instruction结构来确认这一点。
+                        int param_count = instr.arg2.value;
+
+                        // 我们让反向迭代器it额外前进param_count次，
+                        // 从而在循环中跳过这些PARAM指令。
+                        if (param_count > 0) {
+                            std::advance(it, param_count);
+                        }
+                    }
+                    // 对于is_dead为true的指令（包括CALL和它关联的PARAM），
+                    // 我们什么都不做，它们就不会被加入到new_instructions中。
                 }
                 else {
                     // 如果指令不是死的，保留它
@@ -504,7 +512,6 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
     }
     return changed_at_all;
 }
-
 
 // --- 优化阶段六: 尾递归消除 (保持不变) ---
 
