@@ -39,22 +39,29 @@ static std::string get_expr_id(const Instruction& instr) {
 void Optimizer::optimize(ModuleIR& module) {
     initialize_temp_counter(module);
 
-    // 尾递归消除通常只做一次，且在循环优化前做比较好
-    run_tail_recursion_elimination(module);
-
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
-        // 【修改】在循环开始时调用不可达代码消除
-        bool uce_changed = run_unreachable_code_elimination(module);
-        bool cp_prop_changed = run_constant_propagation(module);
-        bool alg_changed = run_algebraic_simplification(module);
-        bool cse_changed = run_common_subexpression_elimination(module);
-        bool copy_prop_changed = run_copy_propagation(module);
-        bool dce_changed = run_dead_code_elimination(module);
+        bool changed_this_pass = false;
 
-        changed_in_cycle = uce_changed || cp_prop_changed || alg_changed || cse_changed || copy_prop_changed || dce_changed;
+        // 1. 结构性与清理优化
+        // 将尾递归消除移入循环，让它能从其他优化中受益。
+        // 它作为一种强大的结构性改变，适合放在一轮的开始。
+        changed_this_pass |= run_tail_recursion_elimination(module);
+        changed_this_pass |= run_unreachable_code_elimination(module);
+
+        // 2. 核心简化阶段：传播值，然后化简表达式
+        changed_this_pass |= run_constant_propagation(module);
+        changed_this_pass |= run_copy_propagation(module);
+        changed_this_pass |= run_algebraic_simplification(module);
+        changed_this_pass |= run_common_subexpression_elimination(module);
+
+        // 3. 最终清理阶段：移除所有因简化而产生的无用代码
+        changed_this_pass |= run_dead_code_elimination(module);
+
+        changed_in_cycle = changed_this_pass;
     }
 }
+
 
 // --- 临时变量工具 (保持不变) ---
 
@@ -271,6 +278,28 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
                     changed_this_pass = true;
                     continue;
                 }
+                if (instr.arg1.kind == Operand::CONST) {
+                    int val1 = instr.arg1.value;
+                    if (instr.opcode == Instruction::ADD&&val1 == 0) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1 = instr.arg2;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                    else if (instr.opcode == Instruction::MUL && val1 == 1) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1 = instr.arg2;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                    else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val1 == 0) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1.kind = Operand::CONST;
+                        instr.arg1.value = 0;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                }
                 if (instr.arg2.kind == Operand::CONST) {
                     int val = instr.arg2.value;
                     if ((instr.opcode == Instruction::ADD || instr.opcode == Instruction::SUB) && val == 0) {
@@ -281,12 +310,6 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
                     else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val == 1) {
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg2.kind = Operand::NONE;
-                        changed_this_pass = true;
-                    }
-                    else if ((instr.opcode == Instruction::MUL || instr.opcode == Instruction::DIV) && val == -1) {
-                        instr.opcode = Instruction::ASSIGN;
-                        instr.arg2.kind = Operand::NONE;
-                        instr.arg1.value = 0 - instr.arg1.value;
                         changed_this_pass = true;
                     }
                     else if (instr.opcode == Instruction::MUL && val == 0) {
