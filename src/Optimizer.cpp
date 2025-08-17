@@ -293,13 +293,13 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
                         instr.arg2 = {};
                         changed_this_pass = true;
                     }
-                    else if (instr.opcode == Instruction::SUB && val1 == 1) {
+                    else if (instr.opcode == Instruction::MUL && val1 == 1) {
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg1 = instr.arg2;
                         instr.arg2 = {};
                         changed_this_pass = true;
                     }
-                    else if (instr.opcode == Instruction::SUB && val1 == -1) {
+                    else if (instr.opcode == Instruction::MUL && val1 == -1) {
                         instr.opcode = Instruction::ASSIGN;
                         instr.arg1 = instr.arg2;
                         instr.arg1.value = 0 - instr.arg1.value;
