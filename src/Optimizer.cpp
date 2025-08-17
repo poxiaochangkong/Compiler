@@ -39,31 +39,29 @@ static std::string get_expr_id(const Instruction& instr) {
 void Optimizer::optimize(ModuleIR& module) {
     initialize_temp_counter(module);
 
-    // 1. 结构性大改动最先进行
-    // 尾递归消除将递归变为循环，彻底改变控制流图，应该在所有基于流的分析之前完成。
-    run_tail_recursion_elimination(module);
-
     bool changed_in_cycle = true;
     while (changed_in_cycle) {
         bool changed_this_pass = false;
 
-        // 2. 清理无法访问的代码，避免后续分析做无用功
+        // 1. 结构性与清理优化
+        // 将尾递归消除移入循环，让它能从其他优化中受益。
+        // 它作为一种强大的结构性改变，适合放在一轮的开始。
+        changed_this_pass |= run_tail_recursion_elimination(module);
         changed_this_pass |= run_unreachable_code_elimination(module);
 
-        // 3. 核心简化阶段：传播值，然后化简表达式
-        // 这几个优化协同作用非常强，应该放在一起
+        // 2. 核心简化阶段：传播值，然后化简表达式
         changed_this_pass |= run_constant_propagation(module);
-        changed_this_pass |= run_copy_propagation(module); // 副本传播紧跟常量传播，它们都是值传播
-        changed_this_pass |= run_algebraic_simplification(module); // 代数化简利用上面传播来的常量
-        changed_this_pass |= run_common_subexpression_elimination(module); // 在化简后的代码中寻找公共子表达式
+        changed_this_pass |= run_copy_propagation(module);
+        changed_this_pass |= run_algebraic_simplification(module);
+        changed_this_pass |= run_common_subexpression_elimination(module);
 
-        // 4. 最终清理阶段：移除所有因简化而产生的无用代码
-        // 在一轮简化的最后进行，效果最好
+        // 3. 最终清理阶段：移除所有因简化而产生的无用代码
         changed_this_pass |= run_dead_code_elimination(module);
 
         changed_in_cycle = changed_this_pass;
     }
 }
+
 
 // --- 临时变量工具 (保持不变) ---
 
