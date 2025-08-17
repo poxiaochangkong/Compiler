@@ -278,6 +278,35 @@ bool Optimizer::run_algebraic_simplification(ModuleIR& module) {
                     changed_this_pass = true;
                     continue;
                 }
+                if (instr.arg1.kind == Operand::CONST) {
+                    int val1 = instr.arg1.value;
+                    if (instr.opcode == Instruction::ADD&&val1 == 0) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1 = instr.arg2;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                    else if (instr.opcode == Instruction::SUB && val1 == 0) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1 = instr.arg2;
+                        instr.arg1.value = 0 - instr.arg1.value;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                    else if (instr.opcode == Instruction::SUB && val1 == 1) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1 = instr.arg2;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                    else if (instr.opcode == Instruction::SUB && val1 == -1) {
+                        instr.opcode = Instruction::ASSIGN;
+                        instr.arg1 = instr.arg2;
+                        instr.arg1.value = 0 - instr.arg1.value;
+                        instr.arg2 = {};
+                        changed_this_pass = true;
+                    }
+                }
                 if (instr.arg2.kind == Operand::CONST) {
                     int val = instr.arg2.value;
                     if ((instr.opcode == Instruction::ADD || instr.opcode == Instruction::SUB) && val == 0) {
