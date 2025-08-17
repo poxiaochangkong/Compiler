@@ -1,0 +1,24 @@
+int main() {
+    int sum = 0;
+    int i = 1;
+    while (i <= 10)
+    {
+        // --- 错误就发生在这个 if-else if-else 结构 ---
+        if (i % 2 == 0)
+        {
+            sum = sum + i * i;
+        }
+        else if (i % 3 == 0)
+        {
+            sum = sum + i * i * i;
+        }
+        else
+        {
+            sum = sum + i;
+        }
+        // --- 结构结束 ---
+
+        i = i + 1;
+    }
+    return sum;
+}
