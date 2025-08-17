@@ -465,7 +465,7 @@ bool Optimizer::run_dead_code_elimination(ModuleIR& module) {
                         case Instruction::DIV: case Instruction::MOD: case Instruction::NOT:
                         case Instruction::EQ:  case Instruction::NEQ: case Instruction::LT:
                         case Instruction::GT:  case Instruction::LE:  case Instruction::GE:
-                        case Instruction::ASSIGN: case Instruction::CALL:
+                        case Instruction::ASSIGN: 
                             is_dead = true;
                             break;
                         // 增加CALL指令。基于“函数是纯的”这一假设，
